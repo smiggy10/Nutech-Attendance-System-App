@@ -6,6 +6,7 @@ import 'screens/auth/register_password_screen.dart';
 import 'screens/auth/forgot_password_screen.dart';
 import 'screens/auth/verify_email_screen.dart';
 import 'screens/home/home_shell.dart';
+import 'screens/home/edit_profile_screen.dart';
 import 'theme/app_theme.dart';
 
 class NutechApp extends StatelessWidget {
@@ -23,6 +24,7 @@ class NutechApp extends StatelessWidget {
         SignupScreen.route: (_) => const SignupScreen(),
         RegisterPasswordScreen.route: (_) => const RegisterPasswordScreen(),
         ForgotPasswordScreen.route: (_) => const ForgotPasswordScreen(),
+        EditProfileScreen.route: (_) => const EditProfileScreen(),
         VerifyEmailScreen.route: (_) => const VerifyEmailScreen(),
         HomeShell.route: (_) => const HomeShell(),
       },

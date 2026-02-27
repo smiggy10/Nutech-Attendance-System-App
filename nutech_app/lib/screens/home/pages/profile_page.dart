@@ -1,16 +1,13 @@
 import 'package:flutter/material.dart';
 
+import '../edit_profile_screen.dart';
+import '../../auth/login_screen.dart';
+
 import '../../../theme/app_theme.dart';
 import '../../../widgets/primary_button.dart';
-// import '../auth/login_screen.dart';       // ✅ change to your actual import
-// import 'edit_profile_screen.dart';        // ✅ change to your actual import
 
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
-
-  // ✅ Update these to your real routes
-  static const editProfileRoute = '/edit-profile';
-  static const loginRoute = '/login';
 
   @override
   Widget build(BuildContext context) {
@@ -21,7 +18,7 @@ class ProfilePage extends StatelessWidget {
           left: 0,
           right: 0,
           top: 0,
-          height: 300, // ✅ taller header like your target
+          height: 300,
           child: Container(
             color: AppTheme.teal.withOpacity(0.55),
           ),
@@ -33,7 +30,7 @@ class ProfilePage extends StatelessWidget {
           child: Stack(
             clipBehavior: Clip.none,
             children: [
-              // ✅ Card pushed down a bit so avatar can overlap
+              // Card pushed down a bit so avatar can overlap
               Padding(
                 padding: const EdgeInsets.only(top: 48),
                 child: Container(
@@ -103,7 +100,7 @@ class ProfilePage extends StatelessWidget {
 
                       const SizedBox(height: 22),
 
-                      // ✅ Logout button (wider + taller, like target)
+                      // Logout button
                       SizedBox(
                         width: double.infinity,
                         height: 56,
@@ -118,7 +115,7 @@ class ProfilePage extends StatelessWidget {
                 ),
               ),
 
-              // ✅ Top row: Avatar + Edit button (overlapping card like your target)
+              // Top row: Avatar + Edit button (overlapping card like your target)
               Positioned(
                 left: 0,
                 right: 0,
@@ -134,18 +131,21 @@ class ProfilePage extends StatelessWidget {
                       ),
                       child: const CircleAvatar(
                         radius: 42,
+
+                        // ✅ IMPORTANT:
+                        // Use the avatar asset you actually have.
+                        // If your avatar is in assets/images/ui/avatar.png, change this path.
                         backgroundImage: AssetImage('assets/images/avatar.png'),
                       ),
                     ),
 
                     const Spacer(),
 
-                    // ✅ Clickable "Edit Profile" pill button
+                    // Clickable "Edit Profile" pill button
                     InkWell(
                       borderRadius: BorderRadius.circular(18),
                       onTap: () {
-                        // Change route if needed
-                        Navigator.pushNamed(context, editProfileRoute);
+                        Navigator.pushNamed(context, EditProfileScreen.route);
                       },
                       child: Container(
                         padding: const EdgeInsets.symmetric(
@@ -193,15 +193,10 @@ class ProfilePage extends StatelessWidget {
 
     if (shouldLogout != true) return;
 
-    // ✅ Replace with your real logout logic:
-    // - clear tokens/session
-    // - sign out provider
-    // etc.
-
-    // ✅ Go back to login and clear stack
+    // Go back to login and clear stack
     Navigator.pushNamedAndRemoveUntil(
       context,
-      loginRoute,
+      LoginScreen.route,
       (route) => false,
     );
   }
@@ -231,7 +226,6 @@ class _InfoRow extends StatelessWidget {
           ),
           const SizedBox(width: 10),
 
-          // label
           SizedBox(
             width: 88,
             child: Text(
@@ -242,7 +236,6 @@ class _InfoRow extends StatelessWidget {
 
           const SizedBox(width: 10),
 
-          // value
           Expanded(
             child: Text(
               value,
