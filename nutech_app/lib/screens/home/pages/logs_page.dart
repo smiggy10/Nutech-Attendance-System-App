@@ -16,7 +16,7 @@ class _LogsPageState extends State<LogsPage> {
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(18, 18, 18, 22),
+      padding: const EdgeInsets.fromLTRB(18, 55, 18, 22),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

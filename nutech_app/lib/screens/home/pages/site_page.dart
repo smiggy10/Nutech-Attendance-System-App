@@ -56,7 +56,7 @@ class _SitePageState extends State<SitePage> {
     final title2 = _offices ? 'OFFICE' : 'PROJECT SITES';
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(18, 18, 18, 22),
+      padding: const EdgeInsets.fromLTRB(18, 55, 18, 22),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

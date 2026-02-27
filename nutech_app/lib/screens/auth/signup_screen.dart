@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../widgets/nutech_background.dart';
 import '../../widgets/nutech_text_field.dart';
 import '../../widgets/primary_button.dart';
+import '../../widgets/nutech_logo.dart'; // ✅ added
 import 'register_password_screen.dart';
 
 class SignupScreen extends StatelessWidget {
@@ -16,53 +17,70 @@ class SignupScreen extends StatelessWidget {
       body: NutechBackground(
         child: SafeArea(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(24, 40, 24, 24),
+            padding: const EdgeInsets.fromLTRB(24, 95, 24, 40),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // ✅ Wide logo (no extra container behind)
-                Center(
-                  child: Image.asset(
-                    'assets/images/branding/nutechlogo2.png',
-                    width: 260,
-                    fit: BoxFit.contain,
-                  ),
-                ),
-
-                const SizedBox(height: 24),
+                
+                // ✅ Reusable Logo
+                const NutechLogo(),
 
                 // User ID
-                const Text('User ID', style: TextStyle(fontWeight: FontWeight.w700)),
+                const Text(
+                  'User ID',
+                  style: TextStyle(fontWeight: FontWeight.w700),
+                ),
                 const SizedBox(height: 10),
                 const NutechTextField(hint: 'Enter user id'),
                 const SizedBox(height: 16),
 
                 // Name
-                const Text('Name', style: TextStyle(fontWeight: FontWeight.w700)),
+                const Text(
+                  'Name',
+                  style: TextStyle(fontWeight: FontWeight.w700),
+                ),
                 const SizedBox(height: 10),
                 const NutechTextField(hint: 'Enter name'),
                 const SizedBox(height: 16),
 
                 // Email Address
-                const Text('Email Address', style: TextStyle(fontWeight: FontWeight.w700)),
+                const Text(
+                  'Email Address',
+                  style: TextStyle(fontWeight: FontWeight.w700),
+                ),
                 const SizedBox(height: 10),
-                const NutechTextField(hint: 'Enter email', keyboardType: TextInputType.emailAddress),
+                const NutechTextField(
+                  hint: 'Enter email',
+                  keyboardType: TextInputType.emailAddress,
+                ),
                 const SizedBox(height: 16),
 
                 // Address
-                const Text('Address', style: TextStyle(fontWeight: FontWeight.w700)),
+                const Text(
+                  'Address',
+                  style: TextStyle(fontWeight: FontWeight.w700),
+                ),
                 const SizedBox(height: 10),
                 const NutechTextField(hint: 'Enter address'),
                 const SizedBox(height: 16),
 
                 // Contact Number
-                const Text('Contact Number', style: TextStyle(fontWeight: FontWeight.w700)),
+                const Text(
+                  'Contact Number',
+                  style: TextStyle(fontWeight: FontWeight.w700),
+                ),
                 const SizedBox(height: 10),
-                const NutechTextField(hint: 'Enter contact number', keyboardType: TextInputType.phone),
+                const NutechTextField(
+                  hint: 'Enter contact number',
+                  keyboardType: TextInputType.phone,
+                ),
                 const SizedBox(height: 16),
 
-                // Birthdate (looks like a field; later we can make it open a date picker)
-                const Text('Birthdate', style: TextStyle(fontWeight: FontWeight.w700)),
+                // Birthdate
+                const Text(
+                  'Birthdate',
+                  style: TextStyle(fontWeight: FontWeight.w700),
+                ),
                 const SizedBox(height: 10),
                 const NutechTextField(
                   hint: 'Enter birthdate',
@@ -73,7 +91,8 @@ class SignupScreen extends StatelessWidget {
 
                 PrimaryButton(
                   label: 'Continue',
-                  onPressed: () => Navigator.pushNamed(context, RegisterPasswordScreen.route),
+                  onPressed: () =>
+                      Navigator.pushNamed(context, RegisterPasswordScreen.route),
                 ),
 
                 const SizedBox(height: 18),

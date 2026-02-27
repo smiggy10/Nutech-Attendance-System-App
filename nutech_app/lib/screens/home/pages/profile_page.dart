@@ -2,72 +2,166 @@ import 'package:flutter/material.dart';
 
 import '../../../theme/app_theme.dart';
 import '../../../widgets/primary_button.dart';
+// import '../auth/login_screen.dart';       // ✅ change to your actual import
+// import 'edit_profile_screen.dart';        // ✅ change to your actual import
 
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
+
+  // ✅ Update these to your real routes
+  static const editProfileRoute = '/edit-profile';
+  static const loginRoute = '/login';
 
   @override
   Widget build(BuildContext context) {
     return Stack(
       children: [
-        // Teal header
+        // Background teal header (match the look)
         Positioned(
           left: 0,
           right: 0,
           top: 0,
-          height: 240,
-          child: Container(color: AppTheme.teal.withOpacity(0.55)),
+          height: 300, // ✅ taller header like your target
+          child: Container(
+            color: AppTheme.teal.withOpacity(0.55),
+          ),
         ),
 
+        // Main content
         SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(18, 18, 18, 22),
-          child: Column(
+          padding: const EdgeInsets.fromLTRB(18, 70, 18, 26),
+          child: Stack(
+            clipBehavior: Clip.none,
             children: [
-              Row(
-                children: [
-                  const CircleAvatar(
-                    radius: 42,
-                    backgroundImage: AssetImage('assets/images/avatar.png'),
+              // ✅ Card pushed down a bit so avatar can overlap
+              Padding(
+                padding: const EdgeInsets.only(top: 48),
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.fromLTRB(16, 60, 16, 18),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(26),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.10),
+                        blurRadius: 18,
+                        offset: const Offset(0, 10),
+                      )
+                    ],
                   ),
-                  const Spacer(),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                    decoration: BoxDecoration(
-                      color: AppTheme.tealSoft,
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    child: const Text('Edit Profile', style: TextStyle(fontWeight: FontWeight.w800)),
+                  child: Column(
+                    children: [
+                      const Text(
+                        'Information Details',
+                        style: TextStyle(fontWeight: FontWeight.w900),
+                      ),
+                      const SizedBox(height: 16),
+
+                      const _InfoRow(
+                        icon: Icons.badge_outlined,
+                        label: 'user id',
+                        value: 'EMP26N001',
+                      ),
+                      const _InfoRow(
+                        icon: Icons.person_outline,
+                        label: 'name',
+                        value: 'Juan Reynolds',
+                      ),
+                      const _InfoRow(
+                        icon: Icons.email_outlined,
+                        label: 'email',
+                        value: 'juan.reynolds@gmail.com',
+                      ),
+                      const _InfoRow(
+                        icon: Icons.home_outlined,
+                        label: 'address',
+                        value: 'Marauoy, Lipa City, Batangas',
+                      ),
+                      const _InfoRow(
+                        icon: Icons.call_outlined,
+                        label: 'contact no.',
+                        value: '0912 345 6789',
+                      ),
+                      const _InfoRow(
+                        icon: Icons.calendar_month_outlined,
+                        label: 'birthdate',
+                        value: '01/01/1999',
+                      ),
+
+                      const SizedBox(height: 18),
+
+                      const Text(
+                        'System Access',
+                        style: TextStyle(fontWeight: FontWeight.w900),
+                      ),
+                      const SizedBox(height: 12),
+
+                      const _CheckRow(text: 'IC Card Access Linked'),
+                      const SizedBox(height: 10),
+                      const _CheckRow(text: 'Face ID Registered'),
+
+                      const SizedBox(height: 22),
+
+                      // ✅ Logout button (wider + taller, like target)
+                      SizedBox(
+                        width: double.infinity,
+                        height: 56,
+                        child: PrimaryButton(
+                          label: 'Logout',
+                          isDanger: true,
+                          onPressed: () => _confirmLogout(context),
+                        ),
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
 
-              const SizedBox(height: 14),
-              Container(
-                padding: const EdgeInsets.fromLTRB(16, 18, 16, 16),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(22),
-                ),
-                child: Column(
+              // ✅ Top row: Avatar + Edit button (overlapping card like your target)
+              Positioned(
+                left: 0,
+                right: 0,
+                top: 0,
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Information Details', style: TextStyle(fontWeight: FontWeight.w900)),
-                    const SizedBox(height: 14),
-                    const _InfoRow(icon: Icons.badge_outlined, label: 'user id', value: 'EMP26N001'),
-                    const _InfoRow(icon: Icons.person_outline, label: 'name', value: 'Juan Reynolds'),
-                    const _InfoRow(icon: Icons.email_outlined, label: 'email', value: 'juan.reynolds@gmail.com'),
-                    const _InfoRow(icon: Icons.home_outlined, label: 'address', value: 'Marauoy, Lipa City, Batangas'),
-                    const _InfoRow(icon: Icons.call_outlined, label: 'contact no.', value: '0912 345 6789'),
-                    const _InfoRow(icon: Icons.calendar_month_outlined, label: 'birthdate', value: '01/01/1999'),
-                    const SizedBox(height: 16),
+                    // Avatar (bigger + overlaps)
+                    Container(
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white, width: 3),
+                      ),
+                      child: const CircleAvatar(
+                        radius: 42,
+                        backgroundImage: AssetImage('assets/images/avatar.png'),
+                      ),
+                    ),
 
-                    const Text('System Access', style: TextStyle(fontWeight: FontWeight.w900)),
-                    const SizedBox(height: 10),
-                    const _CheckRow(text: 'IC Card Access Linked'),
-                    const SizedBox(height: 8),
-                    const _CheckRow(text: 'Face ID Registered'),
+                    const Spacer(),
 
-                    const SizedBox(height: 18),
-                    PrimaryButton(label: 'Logout', isDanger: true, onPressed: () {}),
+                    // ✅ Clickable "Edit Profile" pill button
+                    InkWell(
+                      borderRadius: BorderRadius.circular(18),
+                      onTap: () {
+                        // Change route if needed
+                        Navigator.pushNamed(context, editProfileRoute);
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 18,
+                          vertical: 10,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppTheme.tealSoft,
+                          borderRadius: BorderRadius.circular(18),
+                        ),
+                        child: const Text(
+                          'Edit Profile',
+                          style: TextStyle(fontWeight: FontWeight.w800),
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -77,10 +171,48 @@ class ProfilePage extends StatelessWidget {
       ],
     );
   }
+
+  static Future<void> _confirmLogout(BuildContext context) async {
+    final shouldLogout = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Logout'),
+        content: const Text('Are you sure you want to logout?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Logout'),
+          ),
+        ],
+      ),
+    );
+
+    if (shouldLogout != true) return;
+
+    // ✅ Replace with your real logout logic:
+    // - clear tokens/session
+    // - sign out provider
+    // etc.
+
+    // ✅ Go back to login and clear stack
+    Navigator.pushNamedAndRemoveUntil(
+      context,
+      loginRoute,
+      (route) => false,
+    );
+  }
 }
 
 class _InfoRow extends StatelessWidget {
-  const _InfoRow({required this.icon, required this.label, required this.value});
+  const _InfoRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
 
   final IconData icon;
   final String label;
@@ -89,20 +221,33 @@ class _InfoRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
+      padding: const EdgeInsets.symmetric(vertical: 7),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
-            width: 30,
+            width: 28,
             child: Icon(icon, color: AppTheme.teal, size: 20),
           ),
           const SizedBox(width: 10),
-          Expanded(
-            child: Text(label, style: const TextStyle(color: Color(0xFFB5BCC1))),
+
+          // label
+          SizedBox(
+            width: 88,
+            child: Text(
+              label,
+              style: const TextStyle(color: Color(0xFFB5BCC1)),
+            ),
           ),
+
+          const SizedBox(width: 10),
+
+          // value
           Expanded(
-            flex: 2,
-            child: Text(value, style: const TextStyle(fontWeight: FontWeight.w700)),
+            child: Text(
+              value,
+              style: const TextStyle(fontWeight: FontWeight.w700),
+            ),
           ),
         ],
       ),
@@ -112,7 +257,6 @@ class _InfoRow extends StatelessWidget {
 
 class _CheckRow extends StatelessWidget {
   const _CheckRow({required this.text});
-
   final String text;
 
   @override
