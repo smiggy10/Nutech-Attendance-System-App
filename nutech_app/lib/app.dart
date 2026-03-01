@@ -17,7 +17,8 @@ class NutechApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Nutech',
-      theme: AppTheme.light,
+      // Ensure AppTheme.light is defined to handle our new Dialogs and Snackbars
+      theme: AppTheme.light, 
       initialRoute: LoginScreen.route,
       routes: {
         LoginScreen.route: (_) => const LoginScreen(),

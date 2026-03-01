@@ -5,7 +5,10 @@ import '../../../theme/app_theme.dart';
 import '../../../widgets/segmented_tabs.dart';
 
 class SitePage extends StatefulWidget {
-  const SitePage({super.key});
+  // 1. Accept the callback from HomeShell
+  const SitePage({super.key, required this.onSiteSelected});
+
+  final Function(String) onSiteSelected;
 
   @override
   State<SitePage> createState() => _SitePageState();
@@ -52,7 +55,7 @@ class _SitePageState extends State<SitePage> {
 
   @override
   Widget build(BuildContext context) {
-    final title1 = _offices ? 'SELECT' : 'SELECT';
+    final title1 = 'SELECT';
     final title2 = _offices ? 'OFFICE' : 'PROJECT SITES';
 
     return SingleChildScrollView(
@@ -61,9 +64,12 @@ class _SitePageState extends State<SitePage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(title1, style: Theme.of(context).textTheme.headlineMedium),
-          Text(title2, style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900)),
+          Text(title2,
+              style: Theme.of(context)
+                  .textTheme
+                  .titleLarge
+                  ?.copyWith(fontWeight: FontWeight.w900)),
           const SizedBox(height: 14),
-
           SegmentedTabs(
             leftLabel: 'Offices',
             rightLabel: 'Project Sites',
@@ -71,9 +77,15 @@ class _SitePageState extends State<SitePage> {
             onLeft: () => setState(() => _offices = true),
             onRight: () => setState(() => _offices = false),
           ),
-
           const SizedBox(height: 18),
-          ...(_offices ? _officesList : _sitesList).map((s) => _SiteCard(site: s)),
+          
+          // 2. Pass the callback down to each card
+          ...(_offices ? _officesList : _sitesList).map(
+            (s) => _SiteCard(
+              site: s,
+              onConfirm: widget.onSiteSelected,
+            ),
+          ),
         ],
       ),
     );
@@ -81,9 +93,38 @@ class _SitePageState extends State<SitePage> {
 }
 
 class _SiteCard extends StatelessWidget {
-  const _SiteCard({required this.site});
+  const _SiteCard({
+    required this.site,
+    required this.onConfirm,
+  });
 
   final SiteLocation site;
+  final Function(String) onConfirm;
+
+  void _showClockInDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Confirm Clock In',
+            style: TextStyle(fontWeight: FontWeight.w900)),
+        content: Text('Do you want to clock in at ${site.title}?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel', style: TextStyle(color: AppTheme.muted)),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              // 3. Trigger the callback with the site title
+              onConfirm(site.title);
+            },
+            child: const Text('Confirm'),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -91,49 +132,57 @@ class _SiteCard extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 18),
       child: Card(
         clipBehavior: Clip.antiAlias,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // Since the actual photos weren't provided, we use a placeholder.
-            SizedBox(
-              height: 110,
-              child: Image.asset(
-                site.imageAsset,
-                fit: BoxFit.cover,
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(site.title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900)),
-                        const SizedBox(height: 4),
-                        Row(
-                          children: [
-                            const Icon(Icons.location_on, size: 16),
-                            const SizedBox(width: 4),
-                            Expanded(
-                              child: Text(
-                                site.subtitle,
-                                style: const TextStyle(color: AppTheme.muted),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
+        child: InkWell(
+          onTap: () => _showClockInDialog(context),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              SizedBox(
+                height: 110,
+                child: Image.asset(
+                  site.imageAsset,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) => Container(
+                    color: AppTheme.tealSoft,
+                    child: const Icon(Icons.business, size: 40, color: AppTheme.teal),
                   ),
-                  const SizedBox(width: 8),
-                  const Icon(Icons.chevron_right_rounded),
-                ],
+                ),
               ),
-            ),
-          ],
+              Padding(
+                padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(site.title,
+                              style: const TextStyle(
+                                  fontSize: 16, fontWeight: FontWeight.w900)),
+                          const SizedBox(height: 4),
+                          Row(
+                            children: [
+                              const Icon(Icons.location_on,
+                                  size: 16, color: AppTheme.teal),
+                              const SizedBox(width: 4),
+                              Expanded(
+                                child: Text(
+                                  site.subtitle,
+                                  style: const TextStyle(color: AppTheme.muted),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Icon(Icons.chevron_right_rounded, color: AppTheme.teal),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
