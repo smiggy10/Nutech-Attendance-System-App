@@ -11,10 +11,7 @@ class LogsPage extends StatefulWidget {
 }
 
 class _LogsPageState extends State<LogsPage> {
-  // Empty list for history logs
   final List<dynamic> _realLogs = []; 
-
-  // Empty map so no dots appear until DB is connected
   final Map<DateTime, Color> _events = {};
 
   CalendarFormat _calendarFormat = CalendarFormat.month;
@@ -32,7 +29,6 @@ class _LogsPageState extends State<LogsPage> {
           Text('LOGS', style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w900)),
           const SizedBox(height: 14),
 
-          // THE DYNAMIC CALENDAR
           Container(
             decoration: BoxDecoration(
               color: Colors.white,
@@ -45,9 +41,11 @@ class _LogsPageState extends State<LogsPage> {
               focusedDay: _focusedDay,
               calendarFormat: _calendarFormat,
               
-              // Stability settings for version 3.2.0
+              // FIXED SIZE SETTINGS
               rowHeight: 52, 
               daysOfWeekHeight: 25,
+              // This is the key fix: Forces 6 rows every time
+              sixWeekMonthsEnforced: true, 
               
               selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
               
