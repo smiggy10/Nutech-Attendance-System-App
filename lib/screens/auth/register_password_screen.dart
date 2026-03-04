@@ -1,9 +1,11 @@
+import 'dart:io'; // ✅ 1. IMPORT dart:io to support the File type
+
 import 'package:flutter/material.dart';
 
 import '../../widgets/nutech_background.dart';
 import '../../widgets/nutech_text_field.dart';
 import '../../widgets/primary_button.dart';
-import '../../widgets/nutech_logo.dart'; // ✅ Added
+import '../../widgets/nutech_logo.dart'; 
 import 'verify_email_screen.dart';
 
 class RegisterPasswordScreen extends StatefulWidget {
@@ -21,6 +23,57 @@ class _RegisterPasswordScreenState
   bool _obscure1 = true;
   bool _obscure2 = true;
 
+  // ✅ 2. Initialize controllers to capture the passwords
+  final TextEditingController _passController = TextEditingController();
+  final TextEditingController _confirmPassController = TextEditingController();
+
+  @override
+  void dispose() {
+    // ✅ Always dispose controllers to prevent memory leaks
+    _passController.dispose();
+    _confirmPassController.dispose();
+    super.dispose();
+  }
+
+  void _handleSubmit() {
+    // ✅ 3. Correctly receive the arguments Map passed from SignupScreen
+    final args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
+
+    // ✅ 4. CORRECT THE VALIDATOR: Ensure passwords match before proceeding
+    if (_passController.text.isEmpty || _confirmPassController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please fill in all password fields')),
+      );
+      return;
+    }
+
+    if (_passController.text != _confirmPassController.text) {
+      // ✅ 5. Match the UI/flow requirements
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Passwords do not match!')),
+      );
+      return;
+    }
+
+    // ✅ 6. CREATE THE COMPLETE DATA OBJECT FOR THE NEXT STEP
+    // The previous screen's data Map already includes 'profile_image'
+    // This spread operator (...args) will preserve it.
+    final fullRegistrationData = {
+      ...args,
+      'password': _passController.text,
+    };
+
+    // This print will verify that all data is now safe and consolidated.
+    print('User details are complete and validated for OTP: $fullRegistrationData');
+
+    // ✅ 7. PASS ALL COLLECTED DATA to the verification screen
+    Navigator.pushReplacementNamed(
+      context, 
+      VerifyEmailScreen.route,
+      arguments: fullRegistrationData,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -32,7 +85,7 @@ class _RegisterPasswordScreenState
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
 
-                // 🔙 Back Button
+                // 🔙 Reusable back button to Signup Screen
                 Align(
                   alignment: Alignment.centerLeft,
                   child: IconButton(
@@ -42,10 +95,7 @@ class _RegisterPasswordScreenState
                 ),
 
                 const SizedBox(height: 6),
-
-                // ✅ Reusable Logo
                 const NutechLogo(),
-
                 const SizedBox(height: 24),
 
                 const Text(
@@ -70,6 +120,7 @@ class _RegisterPasswordScreenState
 
                 NutechTextField(
                   hint: 'Enter password',
+                  controller: _passController, // ✅ Added controller
                   obscureText: _obscure1,
                   suffix: IconButton(
                     icon: Image.asset(
@@ -95,6 +146,7 @@ class _RegisterPasswordScreenState
 
                 NutechTextField(
                   hint: 'Re-enter password',
+                  controller: _confirmPassController, // ✅ Added controller
                   obscureText: _obscure2,
                   suffix: IconButton(
                     icon: Image.asset(
@@ -111,9 +163,7 @@ class _RegisterPasswordScreenState
 
                 PrimaryButton(
                   label: 'Submit',
-                  onPressed: () =>
-                      Navigator.pushReplacementNamed(
-                          context, VerifyEmailScreen.route),
+                  onPressed: _handleSubmit, // ✅ Use the validation function
                 ),
               ],
             ),

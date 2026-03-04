@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart'; // ✅ Required for TextInputFormatter
 import '../theme/app_theme.dart';
 
 class NutechTextField extends StatelessWidget {
@@ -8,14 +9,13 @@ class NutechTextField extends StatelessWidget {
   final TextEditingController? controller;
   final TextInputType keyboardType;
 
-  // ✅ Keep these existing ones
   final bool readOnly;
   final VoidCallback? onTap;
   final bool enabled;
-
-  // ✅ Add this to specifically handle icons if needed, 
-  // though your code currently uses 'suffix' for this purpose.
   final Widget? suffixIcon; 
+  
+  // ✅ Added this to accept the formatters from SignupScreen
+  final List<TextInputFormatter>? inputFormatters; 
 
   const NutechTextField({
     super.key,
@@ -24,12 +24,11 @@ class NutechTextField extends StatelessWidget {
     this.suffix,
     this.controller,
     this.keyboardType = TextInputType.text,
-
-    // ✅ New params with defaults
     this.readOnly = false,
     this.onTap,
     this.enabled = true,
     this.suffixIcon,
+    this.inputFormatters, // ✅ Add to constructor
   });
 
   @override
@@ -51,11 +50,12 @@ class NutechTextField extends StatelessWidget {
         controller: controller,
         keyboardType: keyboardType,
         obscureText: obscureText,
-
-        // ✅ Pass through
         readOnly: readOnly,
         onTap: onTap,
         enabled: enabled,
+        
+        // ✅ Pass the formatters into the internal TextField
+        inputFormatters: inputFormatters, 
 
         decoration: InputDecoration(
           hintText: hint,
@@ -65,7 +65,6 @@ class NutechTextField extends StatelessWidget {
           focusedBorder: InputBorder.none,
           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
           
-          // logic to use either suffixIcon or suffix
           suffixIcon: (suffixIcon ?? suffix) == null
               ? null
               : Padding(

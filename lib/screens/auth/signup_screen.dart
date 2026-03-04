@@ -1,9 +1,14 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:intl/intl.dart'; // Ensure you have run: flutter pub add intl
+import 'package:intl/intl.dart';
+
+// ✅ Direct import ensures 'getWebSettings' is defined for the Android compiler
+import '../../utils/web_cropper_helper.dart'; 
 
 import '../../theme/app_theme.dart';
 import '../../widgets/nutech_background.dart';
@@ -24,12 +29,15 @@ class SignupScreen extends StatefulWidget {
 class _SignupScreenState extends State<SignupScreen> {
   final ImagePicker _picker = ImagePicker();
   
-  // Controller to handle the text inside the Birthdate field
+  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _addressController = TextEditingController();
+  final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _birthdateController = TextEditingController();
 
-  File? _profileFile; // cropped result file
+  File? _profileFile;
+  String? _webImage;
 
-  // Function to show the Date Picker
   Future<void> _selectBirthdate() async {
     DateTime? picked = await showDatePicker(
       context: context,
@@ -40,9 +48,9 @@ class _SignupScreenState extends State<SignupScreen> {
         return Theme(
           data: Theme.of(context).copyWith(
             colorScheme: const ColorScheme.light(
-              primary: AppTheme.teal, // header background color
-              onPrimary: Colors.white, // header text color
-              onSurface: Colors.black, // body text color
+              primary: AppTheme.teal,
+              onPrimary: Colors.white,
+              onSurface: Colors.black,
             ),
           ),
           child: child!,
@@ -52,7 +60,6 @@ class _SignupScreenState extends State<SignupScreen> {
 
     if (picked != null) {
       setState(() {
-        // Formats date to MM/DD/YYYY to match your requirements
         _birthdateController.text = DateFormat('MM/dd/yyyy').format(picked);
       });
     }
@@ -86,13 +93,21 @@ class _SignupScreenState extends State<SignupScreen> {
             aspectRatioLockEnabled: true,
             resetAspectRatioEnabled: false,
           ),
+          // ✅ kIsWeb check ensures this only runs on Chrome, but the helper
+          // ensures the Android compiler knows the function exists.
+          if (kIsWeb) getWebSettings(context),
         ],
       );
 
       if (cropped == null) return;
 
       setState(() {
-        _profileFile = File(cropped.path);
+        if (kIsWeb) {
+          _webImage = cropped.path;
+          _profileFile = File('web_image'); 
+        } else {
+          _profileFile = File(cropped.path);
+        }
       });
     } catch (e) {
       if (!mounted) return;
@@ -114,6 +129,10 @@ class _SignupScreenState extends State<SignupScreen> {
 
   @override
   void dispose() {
+    _nameController.dispose();
+    _emailController.dispose();
+    _addressController.dispose();
+    _phoneController.dispose();
     _birthdateController.dispose();
     super.dispose();
   }
@@ -131,7 +150,6 @@ class _SignupScreenState extends State<SignupScreen> {
                 const NutechLogo(),
                 const SizedBox(height: 18),
 
-                // ✅ Profile circle slot
                 Center(
                   child: InkWell(
                     onTap: _pickAndCropProfile,
@@ -151,13 +169,12 @@ class _SignupScreenState extends State<SignupScreen> {
                         ],
                       ),
                       child: ClipOval(
-                        child: _profileFile == null
-                            ? Image.asset(
+                        child: (_webImage != null || _profileFile != null)
+                            ? (kIsWeb 
+                                ? Image.network(_webImage!, fit: BoxFit.cover) 
+                                : Image.file(_profileFile!, fit: BoxFit.cover))
+                            : Image.asset(
                                 'assets/images/addimage.png',
-                                fit: BoxFit.cover,
-                              )
-                            : Image.file(
-                                _profileFile!,
                                 fit: BoxFit.cover,
                               ),
                       ),
@@ -168,24 +185,36 @@ class _SignupScreenState extends State<SignupScreen> {
                 const SizedBox(height: 18),
 
                 _label('Name'),
-                const NutechTextField(hint: 'Enter name'),
+                NutechTextField(
+                  hint: 'Enter name',
+                  controller: _nameController,
+                ),
                 const SizedBox(height: 16),
 
                 _label('Email Address'),
-                const NutechTextField(
+                NutechTextField(
                   hint: 'Enter email',
                   keyboardType: TextInputType.emailAddress,
+                  controller: _emailController,
                 ),
                 const SizedBox(height: 16),
 
                 _label('Address'),
-                const NutechTextField(hint: 'Enter address'),
+                NutechTextField(
+                  hint: 'Enter address',
+                  controller: _addressController,
+                ),
                 const SizedBox(height: 16),
 
                 _label('Contact Number'),
-                const NutechTextField(
+                NutechTextField(
                   hint: 'Enter contact number',
                   keyboardType: TextInputType.phone,
+                  controller: _phoneController,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                    LengthLimitingTextInputFormatter(11),
+                  ],
                 ),
                 const SizedBox(height: 16),
 
@@ -194,7 +223,7 @@ class _SignupScreenState extends State<SignupScreen> {
                   hint: 'Select birthdate',
                   readOnly: true,
                   controller: _birthdateController,
-                  onTap: _selectBirthdate, // Triggers calendar on tap
+                  onTap: _selectBirthdate,
                   suffix: const Icon(Icons.calendar_month, color: AppTheme.teal),
                 ),
 
@@ -203,7 +232,56 @@ class _SignupScreenState extends State<SignupScreen> {
                 PrimaryButton(
                   label: 'Continue',
                   onPressed: () {
-                    Navigator.pushNamed(context, RegisterPasswordScreen.route);
+                    final name = _nameController.text.trim();
+                    final email = _emailController.text.trim();
+                    final address = _addressController.text.trim();
+                    final phone = _phoneController.text.trim();
+                    final birthdate = _birthdateController.text.trim();
+
+                    if (name.isEmpty || email.isEmpty || address.isEmpty || phone.isEmpty || birthdate.isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Please fill in all details'),
+                          backgroundColor: Colors.redAccent,
+                        ),
+                      );
+                      return;
+                    }
+
+                    if (phone.length != 11) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Contact number must be exactly 11 digits'),
+                          backgroundColor: Colors.redAccent,
+                        ),
+                      );
+                      return;
+                    }
+
+                    if (_profileFile == null && _webImage == null) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Please upload a profile photo'),
+                          backgroundColor: Colors.redAccent,
+                        ),
+                      );
+                      return;
+                    }
+
+                    final Map<String, dynamic> registrationData = {
+                      'full_name': name,
+                      'email': email,
+                      'address': address,
+                      'contact_number': phone,
+                      'birthdate': birthdate,
+                      'profile_image': kIsWeb ? _webImage : _profileFile,
+                    };
+
+                    Navigator.pushNamed(
+                      context, 
+                      RegisterPasswordScreen.route,
+                      arguments: registrationData,
+                    );
                   },
                 ),
               ],
