@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../theme/app_theme.dart';
+import '../../services/n8n_api.dart';
 import '../../widgets/nutech_background.dart';
 import '../../widgets/nutech_text_field.dart';
 import '../../widgets/primary_button.dart';
@@ -19,6 +20,42 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   bool _obscure = true;
+  bool _loading = false;
+  final _userIdController = TextEditingController();
+  final _passwordController = TextEditingController();
+
+  @override
+  void dispose() {
+    _userIdController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _onLogin() async {
+    final userId = _userIdController.text.trim();
+    final password = _passwordController.text.trim();
+    if (userId.isEmpty || password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Enter User ID and password')),
+      );
+      return;
+    }
+
+    setState(() => _loading = true);
+    try {
+      await N8nApi.login(userId: userId, password: password);
+      if (!mounted) return;
+      Navigator.pushReplacementNamed(context, HomeShell.route);
+    } on N8nApiException catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.message)),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -26,23 +63,17 @@ class _LoginScreenState extends State<LoginScreen> {
       body: NutechBackground(
         child: SafeArea(
           child: SingleChildScrollView(
-            // ✅ Increased top padding so everything sits lower
             padding: const EdgeInsets.fromLTRB(24, 85, 24, 24),
             child: Column(
               children: [
-                // ✅ Reduced extra top spacer (since padding is doing the work now)
                 const SizedBox(height: 10),
-
-                // ✅ Logo with NO background shape
                 Image.asset(
                   'assets/images/branding/nutechlogo1.png',
                   width: 120,
                   height: 120,
                   fit: BoxFit.contain,
                 ),
-
                 const SizedBox(height: 30),
-
                 Align(
                   alignment: Alignment.centerLeft,
                   child: Text(
@@ -51,9 +82,11 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
                 const SizedBox(height: 10),
-                const NutechTextField(hint: 'Enter user id'),
+                NutechTextField(
+                  hint: 'Enter user id',
+                  controller: _userIdController,
+                ),
                 const SizedBox(height: 18),
-
                 Align(
                   alignment: Alignment.centerLeft,
                   child: Text(
@@ -65,6 +98,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 NutechTextField(
                   hint: 'Enter password',
                   obscureText: _obscure,
+                  controller: _passwordController,
                   suffix: IconButton(
                     icon: Image.asset(
                       'assets/icons/visibility.png',
@@ -74,7 +108,6 @@ class _LoginScreenState extends State<LoginScreen> {
                     onPressed: () => setState(() => _obscure = !_obscure),
                   ),
                 ),
-
                 const SizedBox(height: 10),
                 Align(
                   alignment: Alignment.centerRight,
@@ -86,14 +119,11 @@ class _LoginScreenState extends State<LoginScreen> {
                     child: const Text('Forgot password?'),
                   ),
                 ),
-
                 const SizedBox(height: 14),
                 PrimaryButton(
-                  label: 'Login',
-                  onPressed: () =>
-                      Navigator.pushReplacementNamed(context, HomeShell.route),
+                  label: _loading ? 'Logging in…' : 'Login',
+                  onPressed: _loading ? null : _onLogin,
                 ),
-
                 const SizedBox(height: 18),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -102,7 +132,8 @@ class _LoginScreenState extends State<LoginScreen> {
                     TextButton(
                       onPressed: () {
                         Navigator.of(context).push(
-                          MaterialPageRoute(builder: (_) => const SignupScreen()),
+                          MaterialPageRoute(
+                              builder: (_) => const SignupScreen()),
                         );
                       },
                       child: const Text(
@@ -115,7 +146,6 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ],
                 ),
-
                 const SizedBox(height: 18),
                 Row(
                   children: [
@@ -134,7 +164,6 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ],
                 ),
-
                 const SizedBox(height: 14),
                 SizedBox(
                   width: 240,
@@ -155,7 +184,6 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                 ),
-
                 const SizedBox(height: 30),
               ],
             ),

@@ -1,15 +1,89 @@
 import 'package:flutter/material.dart';
 
+import '../../models/registration_data.dart';
+import '../../services/n8n_api.dart';
 import '../../widgets/nutech_background.dart';
 import '../../widgets/nutech_text_field.dart';
 import '../../widgets/primary_button.dart';
-import '../../widgets/nutech_logo.dart'; // ✅ added
+import '../../widgets/nutech_logo.dart';
 import 'register_password_screen.dart';
 
-class SignupScreen extends StatelessWidget {
+class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
 
   static const route = '/signup';
+
+  @override
+  State<SignupScreen> createState() => _SignupScreenState();
+}
+
+class _SignupScreenState extends State<SignupScreen> {
+  final _nameController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _contactController = TextEditingController();
+  final _addressController = TextEditingController();
+  final _birthdateController = TextEditingController();
+  bool _loading = false;
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _emailController.dispose();
+    _contactController.dispose();
+    _addressController.dispose();
+    _birthdateController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _onContinue() async {
+    final fullName = _nameController.text.trim();
+    final email = _emailController.text.trim();
+    final contactNumber = _contactController.text.trim();
+    final address = _addressController.text.trim();
+    final birthdate = _birthdateController.text.trim();
+
+    if (fullName.isEmpty || email.isEmpty || contactNumber.isEmpty ||
+        address.isEmpty || birthdate.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please fill in all fields')),
+        );
+      }
+      return;
+    }
+
+    setState(() => _loading = true);
+    try {
+      await N8nApi.registerUser(
+        fullName: fullName,
+        email: email,
+        contactNumber: contactNumber,
+        address: address,
+        birthdate: birthdate,
+      );
+      if (!mounted) return;
+      final data = RegistrationData(
+        fullName: fullName,
+        email: email,
+        contactNumber: contactNumber,
+        address: address,
+        birthdate: birthdate,
+      );
+      Navigator.pushNamed(
+        context,
+        RegisterPasswordScreen.route,
+        arguments: data,
+      );
+    } on N8nApiException catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.message)),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -21,80 +95,69 @@ class SignupScreen extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                
-                // ✅ Reusable Logo
                 const NutechLogo(),
 
-                // User ID
                 const Text(
-                  'User ID',
+                  'Full Name',
                   style: TextStyle(fontWeight: FontWeight.w700),
                 ),
                 const SizedBox(height: 10),
-                const NutechTextField(hint: 'Enter user id'),
-                const SizedBox(height: 16),
-
-                // Name
-                const Text(
-                  'Name',
-                  style: TextStyle(fontWeight: FontWeight.w700),
+                NutechTextField(
+                  hint: 'Enter full name',
+                  controller: _nameController,
                 ),
-                const SizedBox(height: 10),
-                const NutechTextField(hint: 'Enter name'),
                 const SizedBox(height: 16),
 
-                // Email Address
                 const Text(
                   'Email Address',
                   style: TextStyle(fontWeight: FontWeight.w700),
                 ),
                 const SizedBox(height: 10),
-                const NutechTextField(
+                NutechTextField(
                   hint: 'Enter email',
                   keyboardType: TextInputType.emailAddress,
+                  controller: _emailController,
                 ),
                 const SizedBox(height: 16),
 
-                // Address
                 const Text(
                   'Address',
                   style: TextStyle(fontWeight: FontWeight.w700),
                 ),
                 const SizedBox(height: 10),
-                const NutechTextField(hint: 'Enter address'),
+                NutechTextField(
+                  hint: 'Enter address',
+                  controller: _addressController,
+                ),
                 const SizedBox(height: 16),
 
-                // Contact Number
                 const Text(
                   'Contact Number',
                   style: TextStyle(fontWeight: FontWeight.w700),
                 ),
                 const SizedBox(height: 10),
-                const NutechTextField(
+                NutechTextField(
                   hint: 'Enter contact number',
                   keyboardType: TextInputType.phone,
+                  controller: _contactController,
                 ),
                 const SizedBox(height: 16),
 
-                // Birthdate
                 const Text(
                   'Birthdate',
                   style: TextStyle(fontWeight: FontWeight.w700),
                 ),
                 const SizedBox(height: 10),
-                const NutechTextField(
-                  hint: 'Enter birthdate',
-                  readOnly: true,
+                NutechTextField(
+                  hint: 'Enter birthdate (e.g. 1990-01-15)',
+                  controller: _birthdateController,
                 ),
-
                 const SizedBox(height: 22),
 
                 PrimaryButton(
-                  label: 'Continue',
-                  onPressed: () =>
-                      Navigator.pushNamed(context, RegisterPasswordScreen.route),
+                  label: _loading ? 'Sending…' : 'Continue',
+                  onPressed: _loading ? null : _onContinue,
                 ),
-
                 const SizedBox(height: 18),
               ],
             ),
