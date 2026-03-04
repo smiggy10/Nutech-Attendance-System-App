@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 
 import '../../widgets/nutech_background.dart';
@@ -56,6 +59,14 @@ class _RegisterPasswordScreenState
       'password': _passController.text,
     };
 
+    // Prepare base64-encoded profile image for n8n (if available).
+    String profileImageBase64 = '';
+    final dynamic image = fullRegistrationData['profile_image'];
+    if (image is File) {
+      final bytes = await image.readAsBytes();
+      profileImageBase64 = base64Encode(bytes);
+    }
+
     setState(() {
       _isSubmitting = true;
     });
@@ -68,6 +79,8 @@ class _RegisterPasswordScreenState
         'contactNumber': fullRegistrationData['contact_number'],
         'birthdate': fullRegistrationData['birthdate'],
         'password': fullRegistrationData['password'],
+         // n8n workflow expects this exact key.
+        'profileImageBase64': profileImageBase64,
       };
 
       final response = await N8nApi.registerUser(n8nPayload);
