@@ -1,5 +1,3 @@
-import 'dart:io'; // ✅ 1. IMPORT dart:io to support the File type
-
 import 'package:flutter/material.dart';
 
 import '../../widgets/nutech_background.dart';
@@ -7,6 +5,7 @@ import '../../widgets/nutech_text_field.dart';
 import '../../widgets/primary_button.dart';
 import '../../widgets/nutech_logo.dart'; 
 import 'verify_email_screen.dart';
+import '../../services/n8n_api.dart';
 
 class RegisterPasswordScreen extends StatefulWidget {
   const RegisterPasswordScreen({super.key});
@@ -27,6 +26,8 @@ class _RegisterPasswordScreenState
   final TextEditingController _passController = TextEditingController();
   final TextEditingController _confirmPassController = TextEditingController();
 
+  bool _isSubmitting = false;
+
   @override
   void dispose() {
     // ✅ Always dispose controllers to prevent memory leaks
@@ -35,7 +36,7 @@ class _RegisterPasswordScreenState
     super.dispose();
   }
 
-  void _handleSubmit() {
+  Future<void> _handleSubmit() async {
     // ✅ 3. Correctly receive the arguments Map passed from SignupScreen
     final args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
 
@@ -55,23 +56,69 @@ class _RegisterPasswordScreenState
       return;
     }
 
-    // ✅ 6. CREATE THE COMPLETE DATA OBJECT FOR THE NEXT STEP
-    // The previous screen's data Map already includes 'profile_image'
-    // This spread operator (...args) will preserve it.
+    // ✅ 6. CREATE THE COMPLETE DATA OBJECT FOR n8n + NEXT STEP
     final fullRegistrationData = {
       ...args,
       'password': _passController.text,
     };
 
-    // This print will verify that all data is now safe and consolidated.
-    print('User details are complete and validated for OTP: $fullRegistrationData');
+    setState(() {
+      _isSubmitting = true;
+    });
 
-    // ✅ 7. PASS ALL COLLECTED DATA to the verification screen
-    Navigator.pushReplacementNamed(
-      context, 
-      VerifyEmailScreen.route,
-      arguments: fullRegistrationData,
-    );
+    try {
+      // Map Flutter field names to a clean JSON payload for n8n.
+      final n8nPayload = <String, dynamic>{
+        'fullName': fullRegistrationData['full_name'],
+        'email': fullRegistrationData['email'],
+        'address': fullRegistrationData['address'],
+        'contactNumber': fullRegistrationData['contact_number'],
+        'birthdate': fullRegistrationData['birthdate'],
+        'password': fullRegistrationData['password'],
+        // profileImage can be wired later (e.g. upload URL / base64)
+      };
+
+      final response = await N8nApi.registerUser(n8nPayload);
+
+      // You can shape your workflow to return { success: true, message: '...' }
+      final success = response['success'] == true || response.isEmpty;
+      final message = response['message']?.toString() ??
+          'Registration submitted. Please check your email for the OTP.';
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: success ? Colors.green : Colors.redAccent,
+        ),
+      );
+
+      if (!success) {
+        return;
+      }
+
+      // ✅ PASS ALL COLLECTED DATA (including email) to the OTP screen
+      Navigator.pushReplacementNamed(
+        context, 
+        VerifyEmailScreen.route,
+        arguments: fullRegistrationData,
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to submit registration: $e'),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSubmitting = false;
+        });
+      }
+    }
   }
 
   @override
@@ -163,7 +210,7 @@ class _RegisterPasswordScreenState
 
                 PrimaryButton(
                   label: 'Submit',
-                  onPressed: _handleSubmit, // ✅ Use the validation function
+                  onPressed: _isSubmitting ? null : _handleSubmit,
                 ),
               ],
             ),

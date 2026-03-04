@@ -7,6 +7,7 @@ import '../../widgets/primary_button.dart';
 import '../home/home_shell.dart';
 import 'forgot_password_screen.dart';
 import 'signup_screen.dart';
+import '../../services/n8n_api.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -19,6 +20,73 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   bool _obscure = true;
+  final TextEditingController _userIdController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+  bool _isLoggingIn = false;
+
+  @override
+  void dispose() {
+    _userIdController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _handleLogin() async {
+    final userId = _userIdController.text.trim();
+    final password = _passwordController.text;
+
+    if (userId.isEmpty || password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter both User ID and password'),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      _isLoggingIn = true;
+    });
+
+    try {
+      final response = await N8nApi.login(userId: userId, password: password);
+
+      final success = response['success'] == true || response.isEmpty;
+      final message = response['message']?.toString() ??
+          'Login successful.';
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: success ? Colors.green : Colors.redAccent,
+        ),
+      );
+
+      if (!success) {
+        return;
+      }
+
+      // Optionally, read user info from response['user'] and pass to HomeShell.
+      Navigator.pushReplacementNamed(context, HomeShell.route);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Login failed: $e'),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoggingIn = false;
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -51,7 +119,10 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
                 const SizedBox(height: 10),
-                const NutechTextField(hint: 'Enter user id'),
+                NutechTextField(
+                  hint: 'Enter user id',
+                  controller: _userIdController,
+                ),
                 const SizedBox(height: 18),
 
                 Align(
@@ -64,6 +135,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 const SizedBox(height: 10),
                 NutechTextField(
                   hint: 'Enter password',
+                  controller: _passwordController,
                   obscureText: _obscure,
                   suffix: IconButton(
                     icon: Image.asset(
@@ -90,8 +162,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 const SizedBox(height: 14),
                 PrimaryButton(
                   label: 'Login',
-                  onPressed: () =>
-                      Navigator.pushReplacementNamed(context, HomeShell.route),
+                  onPressed: _isLoggingIn ? null : _handleLogin,
                 ),
 
                 const SizedBox(height: 18),

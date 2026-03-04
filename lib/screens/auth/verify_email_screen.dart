@@ -5,6 +5,7 @@ import '../../widgets/primary_button.dart';
 import '../../widgets/code_input.dart';
 import '../../widgets/nutech_logo.dart';
 // import '../home/home_shell.dart'; // No longer needed for this flow
+import '../../services/n8n_api.dart';
 
 class VerifyEmailScreen extends StatefulWidget {
   const VerifyEmailScreen({super.key});
@@ -18,8 +19,9 @@ class VerifyEmailScreen extends StatefulWidget {
 class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
   // ✅ 1. Variable to store the 4-digit code entered by the user
   String _enteredCode = "";
+  bool _isVerifying = false;
 
-  void _handleVerify() {
+  Future<void> _handleVerify() async {
     // ✅ 2. Retrieve all registration data passed from the previous screens
     final args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
 
@@ -30,26 +32,56 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
       return;
     }
 
-    // ✅ 3. LOGIC PREVIEW: Logic for n8n will go here.
-    print('Final Registration Submission:');
-    print('User Data: $args');
-    print('OTP Code: $_enteredCode');
+    final email = (args['email'] ?? '').toString();
 
-    // ✅ 4. Show Success Message
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Account Verified! Please login to continue.'),
-        backgroundColor: Colors.green,
-      ),
-    );
+    setState(() {
+      _isVerifying = true;
+    });
 
-    // ✅ 5. REDIRECT TO LOGIN
-    // This clears the navigation stack so the user can't "go back" to registration
-    Navigator.pushNamedAndRemoveUntil(
-      context,
-      '/login', // Ensure this matches your Login Screen route in main.dart
-      (route) => false,
-    );
+    try {
+      final response = await N8nApi.verifyOtp(
+        email: email,
+        otp: _enteredCode,
+      );
+
+      final success = response['success'] == true || response.isEmpty;
+      final message = response['message']?.toString() ??
+          'Account Verified! Please login to continue.';
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: success ? Colors.green : Colors.redAccent,
+        ),
+      );
+
+      if (!success) {
+        return;
+      }
+
+      // ✅ REDIRECT TO LOGIN (clear stack)
+      Navigator.pushNamedAndRemoveUntil(
+        context,
+        '/login',
+        (route) => false,
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to verify OTP: $e'),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isVerifying = false;
+        });
+      }
+    }
   }
 
   @override
@@ -119,7 +151,7 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
 
                 PrimaryButton(
                   label: 'Confirm',
-                  onPressed: _handleVerify, // ✅ Now redirects to Login
+                  onPressed: _isVerifying ? null : _handleVerify,
                 ),
               ],
             ),
