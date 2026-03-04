@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:intl/intl.dart'; // Ensure you have run: flutter pub add intl
 
 import '../../theme/app_theme.dart';
 import '../../widgets/nutech_background.dart';
@@ -22,8 +23,40 @@ class SignupScreen extends StatefulWidget {
 
 class _SignupScreenState extends State<SignupScreen> {
   final ImagePicker _picker = ImagePicker();
+  
+  // Controller to handle the text inside the Birthdate field
+  final TextEditingController _birthdateController = TextEditingController();
 
   File? _profileFile; // cropped result file
+
+  // Function to show the Date Picker
+  Future<void> _selectBirthdate() async {
+    DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime(2000),
+      firstDate: DateTime(1950),
+      lastDate: DateTime.now(),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: AppTheme.teal, // header background color
+              onPrimary: Colors.white, // header text color
+              onSurface: Colors.black, // body text color
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (picked != null) {
+      setState(() {
+        // Formats date to MM/DD/YYYY to match your requirements
+        _birthdateController.text = DateFormat('MM/dd/yyyy').format(picked);
+      });
+    }
+  }
 
   Future<void> _pickAndCropProfile() async {
     try {
@@ -80,6 +113,12 @@ class _SignupScreenState extends State<SignupScreen> {
   }
 
   @override
+  void dispose() {
+    _birthdateController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: NutechBackground(
@@ -92,7 +131,7 @@ class _SignupScreenState extends State<SignupScreen> {
                 const NutechLogo(),
                 const SizedBox(height: 18),
 
-                // ✅ Profile circle slot (tap to upload + crop)
+                // ✅ Profile circle slot
                 Center(
                   child: InkWell(
                     onTap: _pickAndCropProfile,
@@ -151,12 +190,15 @@ class _SignupScreenState extends State<SignupScreen> {
                 const SizedBox(height: 16),
 
                 _label('Birthdate'),
-                const NutechTextField(
-                  hint: 'Enter birthdate',
+                NutechTextField(
+                  hint: 'Select birthdate',
                   readOnly: true,
+                  controller: _birthdateController,
+                  onTap: _selectBirthdate, // Triggers calendar on tap
+                  suffix: const Icon(Icons.calendar_month, color: AppTheme.teal),
                 ),
 
-                const SizedBox(height: 18),
+                const SizedBox(height: 32),
 
                 PrimaryButton(
                   label: 'Continue',

@@ -8,10 +8,14 @@ class NutechTextField extends StatelessWidget {
   final TextEditingController? controller;
   final TextInputType keyboardType;
 
-  // ✅ add these
+  // ✅ Keep these existing ones
   final bool readOnly;
   final VoidCallback? onTap;
   final bool enabled;
+
+  // ✅ Add this to specifically handle icons if needed, 
+  // though your code currently uses 'suffix' for this purpose.
+  final Widget? suffixIcon; 
 
   const NutechTextField({
     super.key,
@@ -21,10 +25,11 @@ class NutechTextField extends StatelessWidget {
     this.controller,
     this.keyboardType = TextInputType.text,
 
-    // ✅ new params with defaults
+    // ✅ New params with defaults
     this.readOnly = false,
     this.onTap,
     this.enabled = true,
+    this.suffixIcon,
   });
 
   @override
@@ -47,7 +52,7 @@ class NutechTextField extends StatelessWidget {
         keyboardType: keyboardType,
         obscureText: obscureText,
 
-        // ✅ pass through
+        // ✅ Pass through
         readOnly: readOnly,
         onTap: onTap,
         enabled: enabled,
@@ -59,11 +64,13 @@ class NutechTextField extends StatelessWidget {
           enabledBorder: InputBorder.none,
           focusedBorder: InputBorder.none,
           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-          suffixIcon: suffix == null
+          
+          // logic to use either suffixIcon or suffix
+          suffixIcon: (suffixIcon ?? suffix) == null
               ? null
               : Padding(
                   padding: const EdgeInsets.only(right: 6),
-                  child: suffix,
+                  child: suffixIcon ?? suffix,
                 ),
           suffixIconConstraints: const BoxConstraints(minWidth: 44, minHeight: 44),
         ),
