@@ -4,7 +4,6 @@ import '../../widgets/nutech_background.dart';
 import '../../widgets/primary_button.dart';
 import '../../widgets/code_input.dart';
 import '../../widgets/nutech_logo.dart';
-// import '../home/home_shell.dart'; // No longer needed for this flow
 import '../../services/n8n_api.dart';
 
 class VerifyEmailScreen extends StatefulWidget {
@@ -17,12 +16,10 @@ class VerifyEmailScreen extends StatefulWidget {
 }
 
 class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
-  // ✅ 1. Variable to store the 4-digit code entered by the user
   String _enteredCode = "";
   bool _isVerifying = false;
 
   Future<void> _handleVerify() async {
-    // ✅ 2. Retrieve all registration data passed from the previous screens
     final args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
 
     if (_enteredCode.length < 4) {
@@ -61,7 +58,6 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
         return;
       }
 
-      // ✅ REDIRECT TO LOGIN (clear stack)
       Navigator.pushNamedAndRemoveUntil(
         context,
         '/login',
@@ -86,75 +82,82 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: NutechBackground(
-        child: SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(24, 85, 24, 24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const SizedBox(height: 12),
-                const NutechLogo(),
-                const SizedBox(height: 24),
+    // ✅ Removed 'Scaffold' so NutechBackground locks the background elements
+    return NutechBackground(
+      child: SafeArea(
+        child: SingleChildScrollView(
+          // Ensures background doesn't jump when the numerical keyboard opens
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+          padding: const EdgeInsets.fromLTRB(24, 85, 24, 24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const SizedBox(height: 12),
+              const NutechLogo(),
+              const SizedBox(height: 24),
 
-                const Text(
-                  'Verification',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w800,
-                  ),
+              const Text(
+                'Verification',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
                 ),
+              ),
 
-                const SizedBox(height: 34),
+              const SizedBox(height: 34),
 
-                const Text(
-                  'Enter Verification Code',
-                  textAlign: TextAlign.center,
-                ),
+              const Text(
+                'Enter Verification Code',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 16),
+              ),
 
-                const SizedBox(height: 18),
+              const SizedBox(height: 18),
 
-                // ✅ 4. Capture the input from your custom CodeInput widget
-                CodeInput(
-                  length: 4,
-                  onChanged: (value) {
-                    setState(() {
-                      _enteredCode = value;
-                    });
-                    // Helpful for testing to see the code build up in console
-                    print('Typing OTP: $_enteredCode'); 
-                  },
-                ),
+              // Custom CodeInput widget
+              CodeInput(
+                length: 4,
+                onChanged: (value) {
+                  setState(() {
+                    _enteredCode = value;
+                  });
+                  debugPrint('Typing OTP: $_enteredCode'); 
+                },
+              ),
 
-                const SizedBox(height: 18),
+              const SizedBox(height: 18),
 
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Text("If you didn’t receive a code. "),
-                    GestureDetector(
-                      onTap: () {
-                        // TODO: Trigger n8n Resend OTP webhook
-                        print('Resend OTP clicked');
-                      },
-                      child: const Text(
-                        'Resend',
-                        style: TextStyle(fontWeight: FontWeight.w800),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text("If you didn’t receive a code. "),
+                  GestureDetector(
+                    onTap: () {
+                      // TODO: Trigger n8n Resend OTP
+                      debugPrint('Resend OTP clicked');
+                    },
+                    child: const Text(
+                      'Resend',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w800,
+                        decoration: TextDecoration.underline,
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                ],
+              ),
 
-                const SizedBox(height: 26),
+              const SizedBox(height: 26),
 
-                PrimaryButton(
-                  label: 'Confirm',
-                  onPressed: _isVerifying ? null : _handleVerify,
-                ),
-              ],
-            ),
+              PrimaryButton(
+                label: 'Confirm',
+                onPressed: _isVerifying ? null : _handleVerify,
+              ),
+
+              // Bottom spacing to prevent elements from being cut off on high-res screens
+              const SizedBox(height: 40),
+            ],
           ),
         ),
       ),
