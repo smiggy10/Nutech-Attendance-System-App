@@ -114,13 +114,13 @@ class _LoginScreenState extends State<LoginScreen> {
                 Align(
                   alignment: Alignment.centerLeft,
                   child: Text(
-                    'User ID',
+                    'User ID or Email',
                     style: Theme.of(context).textTheme.titleMedium,
                   ),
                 ),
                 const SizedBox(height: 10),
                 NutechTextField(
-                  hint: 'Enter user id',
+                  hint: 'Enter user id or email',
                   controller: _userIdController,
                 ),
                 const SizedBox(height: 18),

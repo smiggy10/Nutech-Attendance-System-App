@@ -24,6 +24,11 @@ class N8nWebhooks {
   static const String userRegister = '/webhook/register/user';
   static const String verifyOtp = '/webhook/verify/otp';
   static const String userLogin = '/webhook/login/user';
+  static const String resendOtp = '/webhook/resend/otp';
+  static const String forgotRequest = '/webhook/forgot-password/request';
+  static const String forgotResend = '/webhook/forgot-password/resend';
+  static const String forgotVerify = '/webhook/forgot-password/verify';
+  static const String forgotReset = '/webhook/forgot-password/reset';
 }
 
 class N8nApi {
@@ -119,6 +124,59 @@ class N8nApi {
     return _postJson(N8nWebhooks.userLogin, {
       'userId': userId,
       'password': password,
+    });
+  }
+
+  /// Resend registration OTP.
+  static Future<Map<String, dynamic>> resendOtp({
+    required String email,
+  }) {
+    return _postJson(N8nWebhooks.resendOtp, {
+      'email': email,
+    });
+  }
+
+  /// Forgot password: request reset code.
+  static Future<Map<String, dynamic>> forgotPasswordRequest({
+    required String email,
+  }) {
+    return _postJson(N8nWebhooks.forgotRequest, {
+      'email': email,
+    });
+  }
+
+  /// Forgot password: resend reset code.
+  static Future<Map<String, dynamic>> forgotPasswordResend({
+    required String email,
+  }) {
+    return _postJson(N8nWebhooks.forgotResend, {
+      'email': email,
+    });
+  }
+
+  /// Forgot password: verify OTP and receive token.
+  static Future<Map<String, dynamic>> forgotPasswordVerify({
+    required String email,
+    required String otp,
+  }) {
+    return _postJson(N8nWebhooks.forgotVerify, {
+      'email': email,
+      'otp': otp,
+    });
+  }
+
+  /// Forgot password: reset password using token.
+  static Future<Map<String, dynamic>> forgotPasswordReset({
+    required String email,
+    required String token,
+    required String newPassword,
+    required String confirmPassword,
+  }) {
+    return _postJson(N8nWebhooks.forgotReset, {
+      'email': email,
+      'token': token,
+      'newPassword': newPassword,
+      'confirmPassword': confirmPassword,
     });
   }
 }

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../widgets/nutech_background.dart';
@@ -18,6 +20,8 @@ class VerifyEmailScreen extends StatefulWidget {
 class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
   String _enteredCode = "";
   bool _isVerifying = false;
+  bool _isResending = false;
+  int _secondsRemaining = 0;
 
   Future<void> _handleVerify() async {
     final args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
@@ -80,6 +84,72 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
     }
   }
 
+  Future<void> _handleResend() async {
+    final args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
+    final email = (args['email'] ?? '').toString();
+
+    if (_secondsRemaining > 0 || _isResending) return;
+
+    setState(() {
+      _isResending = true;
+    });
+
+    try {
+      final response = await N8nApi.resendOtp(email: email);
+      final success = response['success'] == true || response.isEmpty;
+      final message = response['message']?.toString() ??
+          'A new code has been sent to your email.';
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: success ? Colors.green : Colors.redAccent,
+        ),
+      );
+
+      if (!success) {
+        return;
+      }
+
+      setState(() {
+        _secondsRemaining = 60;
+      });
+
+      Timer.periodic(const Duration(seconds: 1), (timer) {
+        if (!mounted) {
+          timer.cancel();
+          return;
+        }
+        if (_secondsRemaining <= 1) {
+          setState(() {
+            _secondsRemaining = 0;
+          });
+          timer.cancel();
+        } else {
+          setState(() {
+            _secondsRemaining -= 1;
+          });
+        }
+      });
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to resend code: $e'),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isResending = false;
+        });
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     // ✅ Removed 'Scaffold' so NutechBackground locks the background elements
@@ -133,10 +203,9 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
                 children: [
                   const Text("If you didn’t receive a code. "),
                   GestureDetector(
-                    onTap: () {
-                      // TODO: Trigger n8n Resend OTP
-                      debugPrint('Resend OTP clicked');
-                    },
+                    onTap: (_secondsRemaining > 0 || _isResending)
+                        ? null
+                        : _handleResend,
                     child: const Text(
                       'Resend',
                       style: TextStyle(
@@ -147,6 +216,15 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
                   ),
                 ],
               ),
+
+              if (_secondsRemaining > 0) ...[
+                const SizedBox(height: 8),
+                Text(
+                  'You can resend a new code in $_secondsRemaining s',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontSize: 12),
+                ),
+              ],
 
               const SizedBox(height: 26),
 

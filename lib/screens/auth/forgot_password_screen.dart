@@ -4,6 +4,8 @@ import '../../widgets/nutech_background.dart';
 import '../../widgets/nutech_logo.dart';
 import '../../widgets/nutech_text_field.dart';
 import '../../widgets/primary_button.dart';
+import '../../services/n8n_api.dart';
+import 'forgot_password_otp_screen.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({super.key});
@@ -15,11 +17,71 @@ class ForgotPasswordScreen extends StatefulWidget {
 }
 
 class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
-  // 0 = request reset (user id + email)
-  // 1 = set new password
-  int _step = 0;
-  bool _obscure1 = true;
-  bool _obscure2 = true;
+  final TextEditingController _emailController = TextEditingController();
+  bool _isSubmitting = false;
+  String? _errorText;
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _handleSendResetCode() async {
+    final email = _emailController.text.trim();
+
+    if (email.isEmpty) {
+      setState(() {
+        _errorText = 'Please enter your email';
+      });
+      return;
+    }
+
+    setState(() {
+      _isSubmitting = true;
+      _errorText = null;
+    });
+
+    try {
+      final response = await N8nApi.forgotPasswordRequest(email: email);
+      final success = response['success'] == true || response.isEmpty;
+      final message = response['message']?.toString() ??
+          'A reset code has been sent to your email.';
+
+      if (!mounted) return;
+
+      if (!success) {
+        setState(() {
+          _errorText = message;
+        });
+        return;
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: Colors.green,
+        ),
+      );
+
+      Navigator.pushNamed(
+        context,
+        ForgotPasswordOtpScreen.route,
+        arguments: {'email': email},
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _errorText = 'Failed to request password reset: $e';
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSubmitting = false;
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -29,6 +91,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           child: SingleChildScrollView(
             padding: const EdgeInsets.fromLTRB(24, 85, 24, 24),
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Align(
                   alignment: Alignment.centerLeft,
@@ -44,90 +107,38 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                 const SizedBox(height: 26),
                 const Text(
                   'Forgot Password',
+                  textAlign: TextAlign.center,
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
                 ),
                 const SizedBox(height: 28),
 
-                if (_step == 0) ...[
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      'Enter User ID',
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    'Email Address',
+                    style: Theme.of(context).textTheme.titleMedium,
                   ),
-                  const SizedBox(height: 10),
-                  const NutechTextField(hint: 'Enter user id'),
-                  const SizedBox(height: 35),
+                ),
+                const SizedBox(height: 10),
+                NutechTextField(
+                  hint: 'Enter email',
+                  controller: _emailController,
+                  keyboardType: TextInputType.emailAddress,
+                ),
 
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      'Enter Email Address Used',
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  const NutechTextField(
-                    hint: 'Enter email',
-                    keyboardType: TextInputType.emailAddress,
-                  ),
-
-                  const SizedBox(height: 65),
-                  PrimaryButton(
-                    label: 'Submit',
-                    onPressed: () => setState(() => _step = 1),
-                  ),
-                ] else ...[
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      'Enter New Password',
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  NutechTextField(
-                    hint: 'Enter password',
-                    obscureText: _obscure1,
-                    suffix: IconButton(
-                      icon: Image.asset(
-                        'assets/icons/visibility.png',
-                        width: 22,
-                        height: 22,
-                      ),
-                      onPressed: () => setState(() => _obscure1 = !_obscure1),
-                    ),
-                  ),
-                  const SizedBox(height: 35),
-
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      'Confirm New Password',
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  NutechTextField(
-                    hint: 'Re-enter password',
-                    obscureText: _obscure2,
-                    suffix: IconButton(
-                      icon: Image.asset(
-                        'assets/icons/visibility.png',
-                        width: 22,
-                        height: 22,
-                      ),
-                      onPressed: () => setState(() => _obscure2 = !_obscure2),
-                    ),
-                  ),
-
-                  const SizedBox(height: 65),
-                  PrimaryButton(
-                    label: 'Submit',
-                    onPressed: () => Navigator.pop(context),
+                if (_errorText != null) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    _errorText!,
+                    style: const TextStyle(color: Colors.redAccent, fontSize: 12),
                   ),
                 ],
+
+                const SizedBox(height: 32),
+                PrimaryButton(
+                  label: 'Send Reset Code',
+                  onPressed: _isSubmitting ? null : _handleSendResetCode,
+                ),
               ],
             ),
           ),
