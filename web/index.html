@@ -29,8 +29,23 @@
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="favicon.png"/>
 
+  <!-- Chrome and web app permissions for file access -->
+  <meta name="permissions" content="camera, microphone">
+  <meta name="allow-file-access" content="true">
+  <meta name="allow-file-access-from-files" content="true">
+  
+  <!-- CORS headers for better Chrome compatibility -->
+  <meta http-equiv="Cross-Origin-Resource-Policy" content="cross-origin">
+  <meta http-equiv="Access-Control-Allow-Origin" content="*">
+  <meta http-equiv="Access-Control-Allow-Methods" content="GET, POST, PUT, DELETE, OPTIONS">
+  <meta http-equiv="Access-Control-Allow-Headers" content="Content-Type, Authorization">
+
   <title>nutech_app</title>
   <link rel="manifest" href="manifest.json">
+  
+  <!-- Add Cropper.js CDN for web image cropping functionality -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.css">
 </head>
 <body>
   <!--

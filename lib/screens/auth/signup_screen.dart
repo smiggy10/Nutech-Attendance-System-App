@@ -7,7 +7,7 @@ import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 
-import '../../utils/web_cropper_helper.dart'; 
+import '../../utils/web_cropper_helper.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/nutech_background.dart';
 import '../../widgets/nutech_logo.dart';
@@ -26,7 +26,7 @@ class SignupScreen extends StatefulWidget {
 
 class _SignupScreenState extends State<SignupScreen> {
   final ImagePicker _picker = ImagePicker();
-  
+
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _addressController = TextEditingController();
@@ -65,13 +65,26 @@ class _SignupScreenState extends State<SignupScreen> {
 
   Future<void> _pickAndCropProfile() async {
     try {
+      debugPrint('Starting image picker...');
+
       final XFile? picked = await _picker.pickImage(
         source: ImageSource.gallery,
         imageQuality: 92,
       );
 
-      if (picked == null) return;
+      if (picked == null) {
+        debugPrint('No image selected');
+        return;
+      }
 
+      debugPrint('Image picked: ${picked.path}');
+      debugPrint('Running on web: $kIsWeb');
+
+      if (kIsWeb) {
+        debugWebCropper(); // Add debug logging for web
+      }
+
+      debugPrint('Starting image cropper...');
       final CroppedFile? cropped = await ImageCropper().cropImage(
         sourcePath: picked.path,
         compressQuality: 92,
@@ -95,31 +108,39 @@ class _SignupScreenState extends State<SignupScreen> {
         ],
       );
 
-      if (cropped == null) return;
+      debugPrint(
+        'Cropping completed. Result: ${cropped != null ? 'success' : 'cancelled'}',
+      );
+
+      if (cropped == null) {
+        debugPrint('User cancelled cropping');
+        return;
+      }
 
       setState(() {
         if (kIsWeb) {
           _webImage = cropped.path;
-          _profileFile = File('web_image'); 
+          _profileFile = File('web_image');
+          debugPrint('Web image set: $_webImage');
         } else {
           _profileFile = File(cropped.path);
+          debugPrint('Mobile file set: ${_profileFile!.path}');
         }
       });
-    } catch (e) {
+    } catch (e, stackTrace) {
+      debugPrint('Error in _pickAndCropProfile: $e');
+      debugPrint('Stack trace: $stackTrace');
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to pick/crop image: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Failed to pick/crop image: $e')));
     }
   }
 
   Widget _label(String text) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
-      child: Text(
-        text,
-        style: const TextStyle(fontWeight: FontWeight.w700),
-      ),
+      child: Text(text, style: const TextStyle(fontWeight: FontWeight.w700)),
     );
   }
 
@@ -169,9 +190,9 @@ class _SignupScreenState extends State<SignupScreen> {
                     ),
                     child: ClipOval(
                       child: (_webImage != null || _profileFile != null)
-                          ? (kIsWeb 
-                              ? Image.network(_webImage!, fit: BoxFit.cover) 
-                              : Image.file(_profileFile!, fit: BoxFit.cover))
+                          ? (kIsWeb
+                                ? Image.network(_webImage!, fit: BoxFit.cover)
+                                : Image.file(_profileFile!, fit: BoxFit.cover))
                           : Image.asset(
                               'assets/images/addimage.png',
                               fit: BoxFit.cover,
@@ -184,10 +205,7 @@ class _SignupScreenState extends State<SignupScreen> {
               const SizedBox(height: 24),
 
               _label('Name'),
-              NutechTextField(
-                hint: 'Enter name',
-                controller: _nameController,
-              ),
+              NutechTextField(hint: 'Enter name', controller: _nameController),
               const SizedBox(height: 16),
 
               _label('Email Address'),
@@ -237,7 +255,11 @@ class _SignupScreenState extends State<SignupScreen> {
                   final phone = _phoneController.text.trim();
                   final birthdate = _birthdateController.text.trim();
 
-                  if (name.isEmpty || email.isEmpty || address.isEmpty || phone.isEmpty || birthdate.isEmpty) {
+                  if (name.isEmpty ||
+                      email.isEmpty ||
+                      address.isEmpty ||
+                      phone.isEmpty ||
+                      birthdate.isEmpty) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
                         content: Text('Please fill in all details'),
@@ -250,7 +272,9 @@ class _SignupScreenState extends State<SignupScreen> {
                   if (phone.length != 11) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
-                        content: Text('Contact number must be exactly 11 digits'),
+                        content: Text(
+                          'Contact number must be exactly 11 digits',
+                        ),
                         backgroundColor: Colors.redAccent,
                       ),
                     );
@@ -277,7 +301,7 @@ class _SignupScreenState extends State<SignupScreen> {
                   };
 
                   Navigator.pushNamed(
-                    context, 
+                    context,
                     RegisterPasswordScreen.route,
                     arguments: registrationData,
                   );

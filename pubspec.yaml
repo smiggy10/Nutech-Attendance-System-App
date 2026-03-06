@@ -11,10 +11,10 @@ dependencies:
   flutter:
     sdk: flutter
   image_picker: ^1.1.2
-  # ✅ Upgraded to ^11.0.0 as required by the latest platform interface
+  # Upgraded to ^11.0.0 as required by the latest platform interface
   image_cropper: ^11.0.0 
-  # ✅ Set to 'any' to automatically resolve the version conflict seen in your terminal
-  image_cropper_for_web: any 
+  # Use compatible version ^7.0.0 as required by image_cropper ^11.0.0
+  image_cropper_for_web: ^7.0.0 
 
   cupertino_icons: ^1.0.8
   table_calendar: ^3.2.0
