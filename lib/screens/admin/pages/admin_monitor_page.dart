@@ -108,7 +108,7 @@ class _AdminMonitorPageState extends State<AdminMonitorPage> {
                       child: _StatCard(
                         title: 'Missing Time-Out',
                         value: alertCount.toString(),
-                        background: AppTheme.danger,
+                        background: const Color(0xFFE74C3C),
                       ),
                     ),
                     const SizedBox(width: 14),
