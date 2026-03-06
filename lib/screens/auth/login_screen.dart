@@ -5,6 +5,7 @@ import '../../widgets/nutech_background.dart';
 import '../../widgets/nutech_text_field.dart';
 import '../../widgets/primary_button.dart';
 import '../home/home_shell.dart';
+import '../admin/admin_shell.dart';
 import 'forgot_password_screen.dart';
 import 'signup_screen.dart';
 import '../../services/n8n_api.dart';
@@ -50,11 +51,25 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     try {
+      // Check for admin credentials first
+      if (userId.toLowerCase() == 'admin' && password == 'admin') {
+        if (!mounted) return;
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Admin login successful'),
+            backgroundColor: Colors.green,
+          ),
+        );
+
+        Navigator.pushReplacementNamed(context, AdminShell.route);
+        return;
+      }
+
       final response = await N8nApi.login(userId: userId, password: password);
 
       final success = response['success'] == true || response.isEmpty;
-      final message = response['message']?.toString() ??
-          'Login successful.';
+      final message = response['message']?.toString() ?? 'Login successful.';
 
       if (!mounted) return;
 

@@ -7,17 +7,20 @@ class NutechBackground extends StatelessWidget {
     required this.child,
     this.showTopAccents = true,
     this.useBrandImages = true,
+    this.bottomAsset,
   });
 
   final Widget child;
   final bool showTopAccents;
   final bool useBrandImages;
+  final String? bottomAsset;
 
   @override
   Widget build(BuildContext context) {
     // ✅ Scaffold is added here to lock the background in place
     return Scaffold(
-      resizeToAvoidBottomInset: false, // ✅ Prevents the keyboard from pushing the background up
+      resizeToAvoidBottomInset:
+          false, // ✅ Prevents the keyboard from pushing the background up
       body: Stack(
         children: [
           // 1. Base Gradient
@@ -42,7 +45,7 @@ class NutechBackground extends StatelessWidget {
               child: Opacity(
                 opacity: useBrandImages ? 1.0 : 0.0,
                 child: Image.asset(
-                  'assets/images/ui/bottombackground1.png',
+                  bottomAsset ?? 'assets/images/ui/bottombackground1.png',
                   width: MediaQuery.of(context).size.width, // Ensure full width
                   fit: BoxFit.cover,
                 ),
