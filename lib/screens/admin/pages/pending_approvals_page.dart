@@ -94,17 +94,16 @@ class _PendingApprovalsPageState extends State<PendingApprovalsPage> {
       if (!mounted) return;
 
       final success = response['success'] == true;
-      final message =
-          response['message']?.toString() ??
-          (action == 'Accept'
-              ? 'Employee has been accepted and notified.'
-              : 'Registration rejected.');
+      final message = response['message']?.toString() ?? '';
 
       if (success) {
-        // Show toast message immediately
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(message),
+            content: Text(message.isNotEmpty
+                ? message
+                : (action == 'Accept'
+                    ? 'Employee has been accepted and notified.'
+                    : 'Registration rejected.')),
             backgroundColor: action == 'Accept' ? Colors.green : Colors.red,
             duration: const Duration(seconds: 2),
           ),
