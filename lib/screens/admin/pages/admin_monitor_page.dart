@@ -11,8 +11,19 @@ class AdminMonitorPage extends StatefulWidget {
 class _AdminMonitorPageState extends State<AdminMonitorPage> {
   int _tab = 0; // 0 = Today, 1 = This Week
 
-  // ✅ The list starts empty. Numbers will stay at 0 until n8n fills this list.
+  // The list starts empty. Numbers will stay at 0 until n8n fills this list.
   List<_MonitorItem> items = [];
+
+  Future<void> _refreshData() async {
+    // Here you would typically call your API to refresh data
+    // For now, we'll just trigger a rebuild to simulate refresh
+    if (mounted) {
+      setState(() {
+        // Clear items to simulate data refresh
+        items = [];
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -27,12 +38,14 @@ class _AdminMonitorPageState extends State<AdminMonitorPage> {
         .where((e) => e.status == _MonitorStatus.clockedOut)
         .length;
 
-    return SingleChildScrollView(
-      // ✅ Removed horizontal padding to allow Dividers to hit screen edges
-      padding: const EdgeInsets.symmetric(vertical: 10),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
+    return RefreshIndicator(
+      onRefresh: _refreshData,
+      child: SingleChildScrollView(
+        // ✅ Removed horizontal padding to allow Dividers to hit screen edges
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
           // ✅ Section 1: Logo (Re-applied horizontal padding)
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -200,6 +213,7 @@ class _AdminMonitorPageState extends State<AdminMonitorPage> {
           ),
         ],
       ),
+      )
     );
   }
 }
