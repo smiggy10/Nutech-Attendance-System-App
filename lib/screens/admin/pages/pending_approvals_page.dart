@@ -92,7 +92,10 @@ class _PendingApprovalsPageState extends State<PendingApprovalsPage> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 const Padding(
-                                  padding: EdgeInsets.only(left: 45, bottom: 10),
+                                  padding: EdgeInsets.only(
+                                    left: 45,
+                                    bottom: 10,
+                                  ),
                                   child: Text(
                                     'Employees',
                                     style: TextStyle(
@@ -136,9 +139,7 @@ class _PendingApprovalsPageState extends State<PendingApprovalsPage> {
       padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: Colors.black.withOpacity(0.08),
-        ),
+        border: Border.all(color: Colors.black.withOpacity(0.08)),
       ),
       child: Row(
         children: [
@@ -154,32 +155,49 @@ class _PendingApprovalsPageState extends State<PendingApprovalsPage> {
           Expanded(
             child: Text(
               name,
-              style: const TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w600,
+              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+            ),
+          ),
+          const SizedBox(width: 8),
+          // Checkmark button (Approve)
+          GestureDetector(
+            onTap: () {
+              // Individual Approve logic (same as before)
+            },
+            child: Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                color: Colors.green.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Image.asset(
+                'assets/admin/checkmark.png',
+                width: 20,
+                height: 20,
               ),
             ),
           ),
-          SizedBox(
-            width: 90,
-            child: ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.teal,
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20),
-                ),
+          const SizedBox(width: 8),
+          // Crossmark button (Reject)
+          GestureDetector(
+            onTap: () {
+              // Reject logic - remove from pending approvals
+              setState(() {
+                _employees.removeWhere((emp) => emp['name'] == name);
+              });
+            },
+            child: Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                color: Colors.red.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(6),
               ),
-              onPressed: () {
-                // Individual Approve logic
-              },
-              child: const Text(
-                'Approve',
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.white,
-                ),
+              child: Image.asset(
+                'assets/admin/crossmark.png',
+                width: 20,
+                height: 20,
               ),
             ),
           ),
@@ -209,10 +227,7 @@ class _PendingApprovalsPageState extends State<PendingApprovalsPage> {
                 ),
                 child: const Text(
                   'Approve All',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w800,
-                    fontSize: 16,
-                  ),
+                  style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
                 ),
               ),
             ),
@@ -233,10 +248,7 @@ class _PendingApprovalsPageState extends State<PendingApprovalsPage> {
                 ),
                 child: const Text(
                   'Back',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w800,
-                    fontSize: 16,
-                  ),
+                  style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
                 ),
               ),
             ),
@@ -265,7 +277,7 @@ class _TableCard extends StatelessWidget {
             color: Colors.black.withOpacity(0.1),
             blurRadius: 10,
             offset: const Offset(0, 4),
-          )
+          ),
         ],
       ),
       child: child,
