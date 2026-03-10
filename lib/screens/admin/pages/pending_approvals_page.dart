@@ -304,9 +304,7 @@ class _PendingApprovalsPageState extends State<PendingApprovalsPage> {
       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: Colors.black.withOpacity(0.08),
-        ),
+        border: Border.all(color: Colors.black.withOpacity(0.08)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -462,7 +460,7 @@ class _TableCard extends StatelessWidget {
             color: Colors.black.withOpacity(0.1),
             blurRadius: 10,
             offset: const Offset(0, 4),
-          )
+          ),
         ],
       ),
       child: child,
