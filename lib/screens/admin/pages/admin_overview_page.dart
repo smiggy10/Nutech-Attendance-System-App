@@ -85,11 +85,13 @@ class _AdminOverviewPageState extends State<AdminOverviewPage> {
         .length;
     final totalEmployees = _allEmployees.length;
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(vertical: 10),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
+    return RefreshIndicator(
+      onRefresh: _refreshData,
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Container(
