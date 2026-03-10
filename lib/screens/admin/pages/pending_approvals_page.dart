@@ -38,7 +38,7 @@ class _PendingApprovalsPageState extends State<PendingApprovalsPage> {
       if (!success) {
         setState(() {
           _loading = false;
-          _errorText = message ?? 'Failed to load pending registrations.';
+          _errorText = message ?? 'No current pending approvals';
         });
         return;
       }
@@ -110,13 +110,8 @@ class _PendingApprovalsPageState extends State<PendingApprovalsPage> {
           ),
         );
 
-        // Remove item from list immediately for real-time update
-        setState(() {
-          _pending.removeWhere((e) => (e['airtableId'] ?? '') == airtableId);
-        });
-
-        // Reload the entire screen after a short delay to ensure real-time sync
-        Future.delayed(const Duration(milliseconds: 500), () {
+        // Reload the entire screen immediately to ensure real-time sync
+        Future.delayed(const Duration(milliseconds: 100), () {
           if (mounted) {
             _loadPending();
           }
