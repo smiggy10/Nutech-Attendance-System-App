@@ -99,17 +99,26 @@ class _PendingApprovalsPageState extends State<PendingApprovalsPage> {
       if (success) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(message.isNotEmpty
-                ? message
-                : (action == 'Accept'
-                    ? 'Employee has been accepted and notified.'
-                    : 'Registration rejected.')),
+            content: Text(
+              message.isNotEmpty
+                  ? message
+                  : (action == 'Accept'
+                        ? 'Employee has been accepted and notified.'
+                        : 'Registration rejected.'),
+            ),
             backgroundColor: action == 'Accept' ? Colors.green : Colors.red,
             duration: const Duration(seconds: 2),
           ),
         );
 
-        // Reload the entire screen immediately to ensure real-time sync
+        // Immediately remove the item from local state for instant UI feedback
+        setState(() {
+          _pending.removeWhere(
+            (item) => item['airtableId'].toString() == airtableId,
+          );
+        });
+
+        // Then refresh from server to ensure complete sync
         Future.delayed(const Duration(milliseconds: 100), () {
           if (mounted) {
             _loadPending();
@@ -209,7 +218,7 @@ class _PendingApprovalsPageState extends State<PendingApprovalsPage> {
                             ),
                           ),
                         )
-                      else if (_pending.isEmpty)
+                      else if (_pending.isEmpty && _errorText == null)
                         const Padding(
                           padding: EdgeInsets.symmetric(vertical: 40),
                           child: Center(
