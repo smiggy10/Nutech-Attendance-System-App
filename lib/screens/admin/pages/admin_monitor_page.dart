@@ -17,9 +17,15 @@ class _AdminMonitorPageState extends State<AdminMonitorPage> {
   @override
   Widget build(BuildContext context) {
     // These lines calculate the numbers based on what is actually in your 'items' list
-    final int clockedInCount = items.where((e) => e.status == _MonitorStatus.clockedIn).length;
-    final int alertCount = items.where((e) => e.status == _MonitorStatus.alert).length;
-    final int clockedOutCount = items.where((e) => e.status == _MonitorStatus.clockedOut).length;
+    final int clockedInCount = items
+        .where((e) => e.status == _MonitorStatus.clockedIn)
+        .length;
+    final int alertCount = items
+        .where((e) => e.status == _MonitorStatus.alert)
+        .length;
+    final int clockedOutCount = items
+        .where((e) => e.status == _MonitorStatus.clockedOut)
+        .length;
 
     return SingleChildScrollView(
       // ✅ Removed horizontal padding to allow Dividers to hit screen edges
@@ -34,7 +40,7 @@ class _AdminMonitorPageState extends State<AdminMonitorPage> {
               margin: const EdgeInsets.only(bottom: 10),
               alignment: Alignment.center,
               child: ConstrainedBox(
-                constraints: const BoxConstraints(maxHeight: 100), 
+                constraints: const BoxConstraints(maxHeight: 100),
                 child: Image.asset(
                   'assets/images/branding/nutechlogo1.png',
                   fit: BoxFit.contain,
@@ -42,15 +48,15 @@ class _AdminMonitorPageState extends State<AdminMonitorPage> {
               ),
             ),
           ),
-          
+
           const SizedBox(height: 10),
-          
+
           // ✅ FIXED: Continuous edge-to-edge lines for the title
           Column(
             children: [
               Divider(
-                color: Colors.black.withOpacity(0.15), 
-                thickness: 1, 
+                color: Colors.black.withOpacity(0.15),
+                thickness: 1,
                 height: 1,
               ),
               Container(
@@ -60,7 +66,7 @@ class _AdminMonitorPageState extends State<AdminMonitorPage> {
                   child: Text(
                     'Attendance Monitoring',
                     style: TextStyle(
-                      fontSize: 26, 
+                      fontSize: 26,
                       fontWeight: FontWeight.w800,
                       color: Colors.black,
                     ),
@@ -68,8 +74,8 @@ class _AdminMonitorPageState extends State<AdminMonitorPage> {
                 ),
               ),
               Divider(
-                color: Colors.black.withOpacity(0.15), 
-                thickness: 1, 
+                color: Colors.black.withOpacity(0.15),
+                thickness: 1,
                 height: 1,
               ),
             ],
@@ -115,7 +121,7 @@ class _AdminMonitorPageState extends State<AdminMonitorPage> {
                     const Expanded(
                       child: _StatCard(
                         title: 'Overtime Detected',
-                        value: '0', 
+                        value: '0',
                         background: AppTheme.teal,
                       ),
                     ),
@@ -148,9 +154,9 @@ class _AdminMonitorPageState extends State<AdminMonitorPage> {
                         index: _tab,
                         onChanged: (i) => setState(() => _tab = i),
                       ),
-                      
+
                       const SizedBox(height: 20),
-                      
+
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 4),
                         child: Text(
@@ -162,7 +168,7 @@ class _AdminMonitorPageState extends State<AdminMonitorPage> {
                           ),
                         ),
                       ),
-                      
+
                       const SizedBox(height: 12),
 
                       if (items.isEmpty)
@@ -179,10 +185,12 @@ class _AdminMonitorPageState extends State<AdminMonitorPage> {
                           ),
                         )
                       else
-                        ...items.map((e) => Padding(
-                              padding: const EdgeInsets.only(bottom: 12),
-                              child: _EmployeeRow(item: e),
-                            )),
+                        ...items.map(
+                          (e) => Padding(
+                            padding: const EdgeInsets.only(bottom: 12),
+                            child: _EmployeeRow(item: e),
+                          ),
+                        ),
                     ],
                   ),
                 ),
@@ -199,7 +207,11 @@ class _AdminMonitorPageState extends State<AdminMonitorPage> {
 // --- Supporting Widgets ---
 
 class _StatCard extends StatelessWidget {
-  const _StatCard({required this.title, required this.value, required this.background});
+  const _StatCard({
+    required this.title,
+    required this.value,
+    required this.background,
+  });
   final String title;
   final String value;
   final Color background;
@@ -213,17 +225,35 @@ class _StatCard extends StatelessWidget {
         color: background,
         borderRadius: BorderRadius.circular(14),
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.14), blurRadius: 14, offset: const Offset(0, 8)),
+          BoxShadow(
+            color: Colors.black.withOpacity(0.14),
+            blurRadius: 14,
+            offset: const Offset(0, 8),
+          ),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 12)),
+          Text(
+            title,
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w800,
+              fontSize: 12,
+            ),
+          ),
           const Spacer(),
           Align(
             alignment: Alignment.bottomRight,
-            child: Text(value, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 22)),
+            child: Text(
+              value,
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w900,
+                fontSize: 22,
+              ),
+            ),
           ),
         ],
       ),
@@ -232,7 +262,12 @@ class _StatCard extends StatelessWidget {
 }
 
 class _Segmented extends StatelessWidget {
-  const _Segmented({required this.left, required this.right, required this.index, required this.onChanged});
+  const _Segmented({
+    required this.left,
+    required this.right,
+    required this.index,
+    required this.onChanged,
+  });
   final String left;
   final String right;
   final int index;
@@ -243,7 +278,10 @@ class _Segmented extends StatelessWidget {
     return Container(
       height: 46,
       padding: const EdgeInsets.all(4),
-      decoration: BoxDecoration(color: const Color(0xFFF1F3F5), borderRadius: BorderRadius.circular(14)),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF1F3F5),
+        borderRadius: BorderRadius.circular(14),
+      ),
       child: Row(
         children: [
           Expanded(
@@ -255,7 +293,13 @@ class _Segmented extends StatelessWidget {
                   color: index == 0 ? AppTheme.teal : Colors.transparent,
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Text(left, style: TextStyle(fontWeight: FontWeight.w900, color: index == 0 ? Colors.white : AppTheme.ink)),
+                child: Text(
+                  left,
+                  style: TextStyle(
+                    fontWeight: FontWeight.w900,
+                    color: index == 0 ? Colors.white : AppTheme.ink,
+                  ),
+                ),
               ),
             ),
           ),
@@ -269,7 +313,13 @@ class _Segmented extends StatelessWidget {
                   color: index == 1 ? AppTheme.teal : Colors.transparent,
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Text(right, style: TextStyle(fontWeight: FontWeight.w900, color: index == 1 ? Colors.white : AppTheme.ink)),
+                child: Text(
+                  right,
+                  style: TextStyle(
+                    fontWeight: FontWeight.w900,
+                    color: index == 1 ? Colors.white : AppTheme.ink,
+                  ),
+                ),
               ),
             ),
           ),
@@ -282,7 +332,12 @@ class _Segmented extends StatelessWidget {
 enum _MonitorStatus { clockedIn, clockedOut, alert }
 
 class _MonitorItem {
-  const _MonitorItem({required this.name, required this.site, required this.status, required this.timeText});
+  const _MonitorItem({
+    required this.name,
+    required this.site,
+    required this.status,
+    required this.timeText,
+  });
   final String name;
   final String site;
   final _MonitorStatus status;
@@ -314,9 +369,18 @@ class _EmployeeRow extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(item.name, style: const TextStyle(fontWeight: FontWeight.w900)),
+                Text(
+                  item.name,
+                  style: const TextStyle(fontWeight: FontWeight.w900),
+                ),
                 const SizedBox(height: 2),
-                Text(item.site, style: const TextStyle(color: AppTheme.muted, fontWeight: FontWeight.w600)),
+                Text(
+                  item.site,
+                  style: const TextStyle(
+                    color: AppTheme.muted,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               ],
             ),
           ),
@@ -325,7 +389,10 @@ class _EmployeeRow extends StatelessWidget {
             children: [
               _StatusPill(status: item.status),
               const SizedBox(height: 6),
-              Text(item.timeText, style: const TextStyle(fontWeight: FontWeight.w800)),
+              Text(
+                item.timeText,
+                style: const TextStyle(fontWeight: FontWeight.w800),
+              ),
             ],
           ),
         ],
@@ -364,8 +431,14 @@ class _StatusPill extends StatelessWidget {
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(999)),
-      child: Text(text, style: TextStyle(color: fg, fontWeight: FontWeight.w900, fontSize: 12)),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(color: fg, fontWeight: FontWeight.w900, fontSize: 12),
+      ),
     );
   }
 }

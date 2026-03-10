@@ -134,6 +134,7 @@ class _AdminOverviewPageState extends State<AdminOverviewPage> {
                         title: 'Late Today',
                         value: lateCount.toString(),
                         isDanger: true,
+                        backgroundColor: const Color(0xFFFFA826),
                       ),
                     ),
                   ],
@@ -146,6 +147,7 @@ class _AdminOverviewPageState extends State<AdminOverviewPage> {
                         title: 'Absent Today',
                         value: absentCount.toString(),
                         isDanger: false,
+                        backgroundColor: const Color(0xFFE74C3C),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -236,38 +238,52 @@ class _MiniStat extends StatelessWidget {
     required this.title,
     required this.value,
     required this.isDanger,
+    this.backgroundColor,
   });
   final String title;
   final String value;
   final bool isDanger;
+  final Color? backgroundColor;
 
   @override
   Widget build(BuildContext context) {
-    final bg = isDanger ? const Color(0xFFE24B33) : AppTheme.teal;
+    final bg =
+        backgroundColor ?? (isDanger ? const Color(0xFFE24B33) : AppTheme.teal);
     return Container(
-      height: 72,
-      padding: const EdgeInsets.all(12),
+      height: 78,
+      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
       decoration: BoxDecoration(
         color: bg,
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              title,
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.14),
+            blurRadius: 14,
+            offset: const Offset(0, 8),
           ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
           Text(
-            value,
+            title,
             style: const TextStyle(
               color: Colors.white,
-              fontSize: 22,
-              fontWeight: FontWeight.w900,
+              fontWeight: FontWeight.w800,
+              fontSize: 12,
+            ),
+          ),
+          const Spacer(),
+          Align(
+            alignment: Alignment.bottomRight,
+            child: Text(
+              value,
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w900,
+                fontSize: 22,
+              ),
             ),
           ),
         ],
