@@ -119,7 +119,7 @@ class _AdminOverviewPageState extends State<AdminOverviewPage> {
                 ),
                 const SizedBox(height: 14),
                 _AlertRow(
-                  iconAsset: 'assets/icons/calendar.png',
+                  iconAsset: 'assets/admin/SandWatch.png',
                   title: 'Pending Approval',
                   value: '0',
                   badgeColor: AppTheme.teal,
@@ -151,21 +151,24 @@ class _AdminOverviewPageState extends State<AdminOverviewPage> {
                   child: Column(
                     children: [
                       _DataStatusRow(
-                        iconAsset: 'assets/icons/user.png',
+                        iconAsset: 'assets/admin/Person-A.png',
+
                         label: 'Total Employees',
                         value: totalEmployees.toString(),
                         valueColor: AppTheme.ink,
                       ),
                       const _DividerLine(),
                       const _DataStatusRow(
-                        iconAsset: 'assets/icons/calendar.png',
+                        iconAsset: 'assets/admin/Attendance.png',
+
                         label: 'Absences This Week',
                         value: '0',
                         valueColor: Colors.red,
                       ),
                       const _DividerLine(),
                       const _DataStatusRow(
-                        iconAsset: 'assets/icons/logs.png',
+                        iconAsset: 'assets/admin/Overtime.png',
+
                         label: 'Overtime Hours',
                         value: '0',
                         valueColor: AppTheme.ink,
