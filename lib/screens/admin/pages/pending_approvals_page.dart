@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:nutech_app/theme/app_theme.dart';
 import 'package:nutech_app/widgets/nutech_background.dart';
+import '../../../services/n8n_api.dart';
 
 class PendingApprovalsPage extends StatefulWidget {
   const PendingApprovalsPage({super.key});
@@ -10,13 +11,119 @@ class PendingApprovalsPage extends StatefulWidget {
 }
 
 class _PendingApprovalsPageState extends State<PendingApprovalsPage> {
-  // This list starts empty and will be populated via Airtable
-  List<Map<String, dynamic>> _employees = [];
+  List<Map<String, dynamic>> _pending = [];
+  bool _loading = true;
+  String? _errorText;
+  final Set<String> _actionInProgress = {};
 
   @override
   void initState() {
     super.initState();
-    // Your Airtable fetch logic will populate _employees here.
+    _loadPending();
+  }
+
+  Future<void> _loadPending() async {
+    setState(() {
+      _loading = true;
+      _errorText = null;
+    });
+
+    try {
+      final response = await N8nApi.getAdminPending();
+      if (!mounted) return;
+
+      final success = response['success'] == true;
+      final message = response['message']?.toString();
+
+      if (!success) {
+        setState(() {
+          _loading = false;
+          _errorText = message ?? 'Failed to load pending registrations.';
+        });
+        return;
+      }
+
+      final list = response['pending'];
+      final items = list is List
+          ? List<Map<String, dynamic>>.from(
+              list.map((e) => e is Map<String, dynamic> ? e : <String, dynamic>{}),
+            )
+          : <Map<String, dynamic>>[];
+
+      setState(() {
+        _pending = items;
+        _loading = false;
+        _errorText = null;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _errorText = 'Failed to load: $e';
+      });
+    }
+  }
+
+  Future<void> _handleAction(Map<String, dynamic> item, String action) async {
+    final airtableId = (item['airtableId'] ?? '').toString();
+    final email = (item['email'] ?? '').toString();
+    final fullName = (item['fullName'] ?? '').toString();
+
+    if (airtableId.isEmpty || email.isEmpty) {
+      setState(() {
+        _errorText = 'Missing required fields for this registration.';
+      });
+      return;
+    }
+
+    setState(() {
+      _actionInProgress.add(airtableId);
+      _errorText = null;
+    });
+
+    try {
+      final response = await N8nApi.adminAction(
+        airtableId: airtableId,
+        email: email,
+        fullName: fullName,
+        action: action,
+      );
+
+      if (!mounted) return;
+
+      final success = response['success'] == true;
+      final message = response['message']?.toString() ??
+          (action == 'Accept'
+              ? 'Employee has been accepted and notified.'
+              : 'Registration rejected.');
+
+      if (success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(message),
+            backgroundColor: Colors.green,
+          ),
+        );
+        setState(() {
+          _pending.removeWhere((e) => (e['airtableId'] ?? '') == airtableId);
+        });
+      } else {
+        setState(() {
+          _errorText = message;
+        });
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _errorText = 'Request failed: $e';
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _actionInProgress.remove(airtableId);
+        });
+      }
+    }
   }
 
   @override
@@ -33,7 +140,6 @@ class _PendingApprovalsPageState extends State<PendingApprovalsPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      // MATCHED LOGO SECTION: Exact same structure as Overview Page
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 20),
                         child: Container(
@@ -48,10 +154,7 @@ class _PendingApprovalsPageState extends State<PendingApprovalsPage> {
                           ),
                         ),
                       ),
-
                       const SizedBox(height: 10),
-
-                      // MATCHED HEADER SECTION: Exact same divider and title style
                       Column(
                         children: [
                           Divider(
@@ -80,19 +183,56 @@ class _PendingApprovalsPageState extends State<PendingApprovalsPage> {
                           ),
                         ],
                       ),
-
                       const SizedBox(height: 20),
 
-                      // DYNAMIC SECTION: Only shows the Card if employees exist.
-                      if (_employees.isNotEmpty)
+                      if (_loading)
+                        const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 40),
+                          child: Center(child: CircularProgressIndicator()),
+                        )
+                      else if (_errorText != null && _pending.isEmpty)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          child: Text(
+                            _errorText!,
+                            style: const TextStyle(
+                              color: Colors.redAccent,
+                              fontSize: 14,
+                            ),
+                          ),
+                        )
+                      else if (_pending.isEmpty)
+                        const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 40),
+                          child: Center(
+                            child: Text(
+                              'No pending registrations',
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: AppTheme.muted,
+                              ),
+                            ),
+                          ),
+                        )
+                      else
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 20),
                           child: _TableCard(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
+                                if (_errorText != null) ...[
+                                  Text(
+                                    _errorText!,
+                                    style: const TextStyle(
+                                      color: Colors.redAccent,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 10),
+                                ],
                                 const Padding(
-                                  padding: EdgeInsets.only(left: 45, bottom: 10),
+                                  padding: EdgeInsets.only(left: 4, bottom: 10),
                                   child: Text(
                                     'Employees',
                                     style: TextStyle(
@@ -104,15 +244,12 @@ class _PendingApprovalsPageState extends State<PendingApprovalsPage> {
                                 ListView.separated(
                                   shrinkWrap: true,
                                   physics: const NeverScrollableScrollPhysics(),
-                                  itemCount: _employees.length,
+                                  itemCount: _pending.length,
                                   separatorBuilder: (_, __) =>
                                       const SizedBox(height: 8),
                                   itemBuilder: (context, index) {
-                                    final emp = _employees[index];
-                                    return _buildEmployeeRow(
-                                      emp['name'] ?? '',
-                                      emp['photoUrl'],
-                                    );
+                                    final item = _pending[index];
+                                    return _buildEmployeeRow(item);
                                   },
                                 ),
                               ],
@@ -123,7 +260,31 @@ class _PendingApprovalsPageState extends State<PendingApprovalsPage> {
                   ),
                 ),
               ),
-              _buildBottomActions(context),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 18),
+                child: SizedBox(
+                  height: 52,
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () => Navigator.pop(context),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFE6E7EA),
+                      foregroundColor: const Color(0xFF5B5F66),
+                      elevation: 4,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    child: const Text(
+                      'Back',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w800,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
             ],
           ),
         ),
@@ -131,115 +292,151 @@ class _PendingApprovalsPageState extends State<PendingApprovalsPage> {
     );
   }
 
-  Widget _buildEmployeeRow(String name, String? photoUrl) {
+  Widget _buildEmployeeRow(Map<String, dynamic> item) {
+    final airtableId = (item['airtableId'] ?? '').toString();
+    final fullName = (item['fullName'] ?? '').toString();
+    final email = (item['email'] ?? '').toString();
+    final registrationDate =
+        (item['registrationDate'] ?? '').toString();
+    final busy = _actionInProgress.contains(airtableId);
+
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
           color: Colors.black.withOpacity(0.08),
         ),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          CircleAvatar(
-            radius: 16,
-            backgroundColor: const Color(0xFF5B5F66),
-            backgroundImage: photoUrl != null ? NetworkImage(photoUrl) : null,
-            child: photoUrl == null
-                ? const Icon(Icons.person, color: Colors.white, size: 18)
-                : null,
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              name,
-              style: const TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w600,
+          Row(
+            children: [
+              CircleAvatar(
+                radius: 20,
+                backgroundColor: const Color(0xFF5B5F66),
+                child: const Icon(Icons.person, color: Colors.white, size: 22),
               ),
-            ),
-          ),
-          SizedBox(
-            width: 90,
-            child: ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.teal,
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20),
-                ),
-              ),
-              onPressed: () {
-                // Individual Approve logic
-              },
-              child: const Text(
-                'Approve',
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.white,
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildBottomActions(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 0, 20, 18),
-      child: Row(
-        children: [
-          Expanded(
-            child: SizedBox(
-              height: 52,
-              child: ElevatedButton(
-                onPressed: _employees.isEmpty ? null : () {},
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.teal,
-                  foregroundColor: Colors.white,
-                  disabledBackgroundColor: const Color(0xFFD1D3D9),
-                  elevation: 8,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
-                child: const Text(
-                  'Approve All',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w800,
-                    fontSize: 16,
-                  ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      fullName,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      email,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: AppTheme.muted,
+                      ),
+                    ),
+                    if (registrationDate.isNotEmpty) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        'Registered: $registrationDate',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: AppTheme.muted,
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
               ),
-            ),
+            ],
           ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: SizedBox(
-              height: 52,
-              child: ElevatedButton(
-                onPressed: () => Navigator.pop(context),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFE6E7EA),
-                  foregroundColor: const Color(0xFF5B5F66),
-                  elevation: 4,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
-                child: const Text(
-                  'Back',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w800,
-                    fontSize: 16,
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: SizedBox(
+                  height: 40,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.teal,
+                      foregroundColor: Colors.white,
+                      disabledBackgroundColor: AppTheme.muted.withOpacity(0.5),
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    onPressed: busy
+                        ? null
+                        : () => _handleAction(item, 'Accept'),
+                    child: busy
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
+                        : const Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.check, size: 20, color: Colors.white),
+                              SizedBox(width: 6),
+                              Text(
+                                'Accept',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ],
+                          ),
                   ),
                 ),
               ),
-            ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: SizedBox(
+                  height: 40,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFE24B33),
+                      foregroundColor: Colors.white,
+                      disabledBackgroundColor: AppTheme.muted.withOpacity(0.5),
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    onPressed: busy
+                        ? null
+                        : () => _handleAction(item, 'Reject'),
+                    child: const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.close, size: 20, color: Colors.white),
+                        SizedBox(width: 6),
+                        Text(
+                          'Reject',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),

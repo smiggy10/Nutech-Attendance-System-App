@@ -29,6 +29,8 @@ class N8nWebhooks {
   static const String forgotResend = '/webhook/forgot-password/resend';
   static const String forgotVerify = '/webhook/forgot-password/verify';
   static const String forgotReset = '/webhook/forgot-password/reset';
+  static const String adminPending = '/webhook/admin/pending';
+  static const String adminAction = '/webhook/admin/action';
 }
 
 class N8nApi {
@@ -40,8 +42,9 @@ class N8nApi {
 
   static Future<Map<String, dynamic>> _postJson(
     String path,
-    Map<String, dynamic> body,
-  ) async {
+    Map<String, dynamic> body, {
+    bool throwOnNon2xx = true,
+  }) async {
     if (!isN8nConfigured) {
       throw Exception(
         'n8n base URL is not configured. Please set N8N_BASE_URL or update kN8nBaseUrl.',
@@ -56,9 +59,46 @@ class N8nApi {
     );
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
+      if (throwOnNon2xx) {
+        throw Exception(
+          'n8n request failed (${response.statusCode}): ${response.body}',
+        );
+      }
+      // When throwOnNon2xx is false (e.g. forgot-password flow),
+      // we continue and let the caller inspect the JSON body's
+      // success / message fields.
+    }
+
+    if (response.body.isEmpty) {
+      return <String, dynamic>{};
+    }
+
+    final decoded = jsonDecode(response.body);
+    if (decoded is Map<String, dynamic>) {
+      return decoded;
+    }
+    return <String, dynamic>{'data': decoded};
+  }
+
+  static Future<Map<String, dynamic>> _getJson(
+    String path, {
+    bool throwOnNon2xx = true,
+  }) async {
+    if (!isN8nConfigured) {
       throw Exception(
-        'n8n request failed (${response.statusCode}): ${response.body}',
+        'n8n base URL is not configured. Please set N8N_BASE_URL or update kN8nBaseUrl.',
       );
+    }
+
+    final uri = _buildUri(path);
+    final response = await http.get(uri);
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      if (throwOnNon2xx) {
+        throw Exception(
+          'n8n request failed (${response.statusCode}): ${response.body}',
+        );
+      }
     }
 
     if (response.body.isEmpty) {
@@ -140,18 +180,26 @@ class N8nApi {
   static Future<Map<String, dynamic>> forgotPasswordRequest({
     required String email,
   }) {
-    return _postJson(N8nWebhooks.forgotRequest, {
-      'email': email,
-    });
+    return _postJson(
+      N8nWebhooks.forgotRequest,
+      {
+        'email': email,
+      },
+      throwOnNon2xx: false,
+    );
   }
 
   /// Forgot password: resend reset code.
   static Future<Map<String, dynamic>> forgotPasswordResend({
     required String email,
   }) {
-    return _postJson(N8nWebhooks.forgotResend, {
-      'email': email,
-    });
+    return _postJson(
+      N8nWebhooks.forgotResend,
+      {
+        'email': email,
+      },
+      throwOnNon2xx: false,
+    );
   }
 
   /// Forgot password: verify OTP and receive token.
@@ -178,6 +226,32 @@ class N8nApi {
       'newPassword': newPassword,
       'confirmPassword': confirmPassword,
     });
+  }
+
+  /// Admin: get pending registrations. Returns { success, count, pending }.
+  /// Caller should check success and use pending list; errors return success: false, message.
+  static Future<Map<String, dynamic>> getAdminPending() {
+    return _getJson(N8nWebhooks.adminPending, throwOnNon2xx: false);
+  }
+
+  /// Admin: accept or reject a registration. Returns { success, message }.
+  /// Caller should check success; errors return success: false, message.
+  static Future<Map<String, dynamic>> adminAction({
+    required String airtableId,
+    required String email,
+    required String fullName,
+    required String action,
+  }) {
+    return _postJson(
+      N8nWebhooks.adminAction,
+      {
+        'airtableId': airtableId,
+        'email': email,
+        'fullName': fullName,
+        'action': action,
+      },
+      throwOnNon2xx: false,
+    );
   }
 }
 
