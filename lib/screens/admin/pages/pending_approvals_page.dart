@@ -46,7 +46,9 @@ class _PendingApprovalsPageState extends State<PendingApprovalsPage> {
       final list = response['pending'];
       final items = list is List
           ? List<Map<String, dynamic>>.from(
-              list.map((e) => e is Map<String, dynamic> ? e : <String, dynamic>{}),
+              list.map(
+                (e) => e is Map<String, dynamic> ? e : <String, dynamic>{},
+              ),
             )
           : <Map<String, dynamic>>[];
 
@@ -92,20 +94,32 @@ class _PendingApprovalsPageState extends State<PendingApprovalsPage> {
       if (!mounted) return;
 
       final success = response['success'] == true;
-      final message = response['message']?.toString() ??
+      final message =
+          response['message']?.toString() ??
           (action == 'Accept'
               ? 'Employee has been accepted and notified.'
               : 'Registration rejected.');
 
       if (success) {
+        // Show toast message immediately
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(message),
-            backgroundColor: Colors.green,
+            backgroundColor: action == 'Accept' ? Colors.green : Colors.red,
+            duration: const Duration(seconds: 2),
           ),
         );
+
+        // Remove item from list immediately for real-time update
         setState(() {
           _pending.removeWhere((e) => (e['airtableId'] ?? '') == airtableId);
+        });
+
+        // Reload the entire screen after a short delay to ensure real-time sync
+        Future.delayed(const Duration(milliseconds: 500), () {
+          if (mounted) {
+            _loadPending();
+          }
         });
       } else {
         setState(() {
@@ -296,8 +310,7 @@ class _PendingApprovalsPageState extends State<PendingApprovalsPage> {
     final airtableId = (item['airtableId'] ?? '').toString();
     final fullName = (item['fullName'] ?? '').toString();
     final email = (item['email'] ?? '').toString();
-    final registrationDate =
-        (item['registrationDate'] ?? '').toString();
+    final registrationDate = (item['registrationDate'] ?? '').toString();
     final busy = _actionInProgress.contains(airtableId);
 
     return Container(
