@@ -92,163 +92,167 @@ class _AdminOverviewPageState extends State<AdminOverviewPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Container(
-              margin: const EdgeInsets.only(bottom: 10),
-              alignment: Alignment.center,
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxHeight: 100),
-                child: Image.asset(
-                  'assets/images/branding/nutechlogo1.png',
-                  fit: BoxFit.contain,
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Container(
+                margin: const EdgeInsets.only(bottom: 10),
+                alignment: Alignment.center,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxHeight: 100),
+                  child: Image.asset(
+                    'assets/images/branding/nutechlogo1.png',
+                    fit: BoxFit.contain,
+                  ),
                 ),
               ),
             ),
-          ),
-          const SizedBox(height: 10),
-          Column(
-            children: [
-              Divider(
-                color: Colors.black.withOpacity(0.15),
-                thickness: 1,
-                height: 1,
-              ),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                child: Center(
-                  child: Text(
-                    'Overview',
-                    style: TextStyle(
-                      fontSize: 26,
-                      fontWeight: FontWeight.w800,
-                      color: Colors.black.withOpacity(0.8),
-                    ),
-                  ),
-                ),
-              ),
-              Divider(
-                color: Colors.black.withOpacity(0.15),
-                thickness: 1,
-                height: 1,
-              ),
-            ],
-          ),
-          const SizedBox(height: 18),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Column(
+            const SizedBox(height: 10),
+            Column(
               children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: _MiniStat(
-                        title: 'On Time Today',
-                        value: onTimeCount.toString(),
-                        isDanger: false,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _MiniStat(
-                        title: 'Late Today',
-                        value: lateCount.toString(),
-                        isDanger: true,
-                        backgroundColor: const Color(0xFFFFA826),
-                      ),
-                    ),
-                  ],
+                Divider(
+                  color: Colors.black.withOpacity(0.15),
+                  thickness: 1,
+                  height: 1,
                 ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _MiniStat(
-                        title: 'Absent Today',
-                        value: absentCount.toString(),
-                        isDanger: false,
-                        backgroundColor: const Color(0xFFE74C3C),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _MiniStat(
-                        title: 'Clocked in Now',
-                        value: clockedInCount.toString(),
-                        isDanger: false,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 14),
-                _AlertRow(
-                  iconAsset: 'assets/admin/SandWatch.png',
-                  title: 'Pending Approval',
-                  value: _isLoadingPending
-                      ? '...'
-                      : _pendingApprovalsCount.toString(),
-                  badgeColor: AppTheme.teal,
-                  onTap: () async {
-                    await Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => const PendingApprovalsPage(),
-                      ),
-                    );
-                    // Refresh the count when returning from pending approvals page
-                    _loadPendingApprovalsCount();
-                  },
-                ),
-                const SizedBox(height: 22),
-                const Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    'Data Status',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
-                  ),
-                ),
-                const SizedBox(height: 12),
                 Container(
                   width: double.infinity,
-                  padding: const EdgeInsets.symmetric(vertical: 10),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.85),
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: Colors.black.withOpacity(0.12)),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  child: Center(
+                    child: Text(
+                      'Overview',
+                      style: TextStyle(
+                        fontSize: 26,
+                        fontWeight: FontWeight.w800,
+                        color: Colors.black.withOpacity(0.8),
+                      ),
+                    ),
                   ),
-                  child: Column(
+                ),
+                Divider(
+                  color: Colors.black.withOpacity(0.15),
+                  thickness: 1,
+                  height: 1,
+                ),
+              ],
+            ),
+            const SizedBox(height: 18),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Column(
+                children: [
+                  Row(
                     children: [
-                      _DataStatusRow(
-                        iconAsset: 'assets/admin/Person-A.png',
-
-                        label: 'Total Employees',
-                        value: totalEmployees.toString(),
-                        valueColor: AppTheme.ink,
+                      Expanded(
+                        child: _MiniStat(
+                          title: 'On Time Today',
+                          value: onTimeCount.toString(),
+                          isDanger: false,
+                        ),
                       ),
-                      const _DividerLine(),
-                      const _DataStatusRow(
-                        iconAsset: 'assets/admin/Attendance.png',
-
-                        label: 'Absences This Week',
-                        value: '0',
-                        valueColor: Colors.red,
-                      ),
-                      const _DividerLine(),
-                      const _DataStatusRow(
-                        iconAsset: 'assets/admin/Overtime.png',
-
-                        label: 'Overtime Hours',
-                        value: '0',
-                        valueColor: AppTheme.ink,
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _MiniStat(
+                          title: 'Late Today',
+                          value: lateCount.toString(),
+                          isDanger: true,
+                          backgroundColor: const Color(0xFFFFA826),
+                        ),
                       ),
                     ],
                   ),
-                ),
-                const SizedBox(height: 18),
-              ],
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _MiniStat(
+                          title: 'Absent Today',
+                          value: absentCount.toString(),
+                          isDanger: false,
+                          backgroundColor: const Color(0xFFE74C3C),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _MiniStat(
+                          title: 'Clocked in Now',
+                          value: clockedInCount.toString(),
+                          isDanger: false,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                  _AlertRow(
+                    iconAsset: 'assets/admin/SandWatch.png',
+                    title: 'Pending Approval',
+                    value: _isLoadingPending
+                        ? '...'
+                        : _pendingApprovalsCount.toString(),
+                    badgeColor: AppTheme.teal,
+                    onTap: () async {
+                      await Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const PendingApprovalsPage(),
+                        ),
+                      );
+                      // Refresh the count when returning from pending approvals page
+                      _loadPendingApprovalsCount();
+                    },
+                  ),
+                  const SizedBox(height: 22),
+                  const Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      'Data Status',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.85),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: Colors.black.withOpacity(0.12)),
+                    ),
+                    child: Column(
+                      children: [
+                        _DataStatusRow(
+                          iconAsset: 'assets/admin/Person-A.png',
+
+                          label: 'Total Employees',
+                          value: totalEmployees.toString(),
+                          valueColor: AppTheme.ink,
+                        ),
+                        const _DividerLine(),
+                        const _DataStatusRow(
+                          iconAsset: 'assets/admin/Attendance.png',
+
+                          label: 'Absences This Week',
+                          value: '0',
+                          valueColor: Colors.red,
+                        ),
+                        const _DividerLine(),
+                        const _DataStatusRow(
+                          iconAsset: 'assets/admin/Overtime.png',
+
+                          label: 'Overtime Hours',
+                          value: '0',
+                          valueColor: AppTheme.ink,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
