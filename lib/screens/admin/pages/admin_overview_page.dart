@@ -16,6 +16,25 @@ class _AdminOverviewPageState extends State<AdminOverviewPage> {
   int _pendingApprovalsCount = 0;
   bool _isLoadingPending = false;
 
+  Future<void> _refreshData() async {
+    // Show refresh indicator
+    setState(() {
+      _isLoadingPending = true;
+    });
+
+    // Simulate API call delay
+    await Future.delayed(const Duration(seconds: 2));
+
+    // Here you would typically call your API to refresh data
+    await _loadPendingApprovalsCount();
+
+    if (mounted) {
+      setState(() {
+        _isLoadingPending = false;
+      });
+    }
+  }
+
   @override
   void initState() {
     super.initState();

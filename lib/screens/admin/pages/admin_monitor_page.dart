@@ -15,12 +15,21 @@ class _AdminMonitorPageState extends State<AdminMonitorPage> {
   List<_MonitorItem> items = [];
 
   Future<void> _refreshData() async {
+    // Show refresh indicator
+    setState(() {
+      // Clear items to simulate data refresh
+      items = [];
+    });
+
+    // Simulate API call delay
+    await Future.delayed(const Duration(seconds: 2));
+
     // Here you would typically call your API to refresh data
-    // For now, we'll just trigger a rebuild to simulate refresh
+    // For demo, we'll just trigger a rebuild after delay
     if (mounted) {
       setState(() {
-        // Clear items to simulate data refresh
-        items = [];
+        // You could reload actual data here
+        // items = await fetchMonitorData();
       });
     }
   }
@@ -46,174 +55,174 @@ class _AdminMonitorPageState extends State<AdminMonitorPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-          // ✅ Section 1: Logo (Re-applied horizontal padding)
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Container(
-              margin: const EdgeInsets.only(bottom: 10),
-              alignment: Alignment.center,
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxHeight: 100),
-                child: Image.asset(
-                  'assets/images/branding/nutechlogo1.png',
-                  fit: BoxFit.contain,
+            // ✅ Section 1: Logo (Re-applied horizontal padding)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Container(
+                margin: const EdgeInsets.only(bottom: 10),
+                alignment: Alignment.center,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxHeight: 100),
+                  child: Image.asset(
+                    'assets/images/branding/nutechlogo1.png',
+                    fit: BoxFit.contain,
+                  ),
                 ),
               ),
             ),
-          ),
 
-          const SizedBox(height: 10),
+            const SizedBox(height: 10),
 
-          // ✅ FIXED: Continuous edge-to-edge lines for the title
-          Column(
-            children: [
-              Divider(
-                color: Colors.black.withOpacity(0.15),
-                thickness: 1,
-                height: 1,
-              ),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                child: const Center(
-                  child: Text(
-                    'Attendance Monitoring',
-                    style: TextStyle(
-                      fontSize: 26,
-                      fontWeight: FontWeight.w800,
-                      color: Colors.black,
-                    ),
-                  ),
-                ),
-              ),
-              Divider(
-                color: Colors.black.withOpacity(0.15),
-                thickness: 1,
-                height: 1,
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 16),
-
-          // ✅ Section 2: Body Content (Re-applied horizontal padding)
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Column(
+            // ✅ FIXED: Continuous edge-to-edge lines for the title
+            Column(
               children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: _StatCard(
-                        title: 'Currently Clocked In',
-                        value: clockedInCount.toString(),
-                        background: AppTheme.teal,
-                      ),
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: _StatCard(
-                        title: 'Clocked Out Today',
-                        value: clockedOutCount.toString(),
-                        background: const Color(0xFFFFA826),
-                      ),
-                    ),
-                  ],
+                Divider(
+                  color: Colors.black.withOpacity(0.15),
+                  thickness: 1,
+                  height: 1,
                 ),
-                const SizedBox(height: 14),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _StatCard(
-                        title: 'Missing Time-Out',
-                        value: alertCount.toString(),
-                        background: const Color(0xFFE74C3C),
-                      ),
-                    ),
-                    const SizedBox(width: 14),
-                    const Expanded(
-                      child: _StatCard(
-                        title: 'Overtime Detected',
-                        value: '0',
-                        background: AppTheme.teal,
-                      ),
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 20),
-
-                // Main Container for Employee Logs
                 Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.9),
-                    borderRadius: BorderRadius.circular(24),
-                    border: Border.all(color: Colors.black.withOpacity(0.05)),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.05),
-                        blurRadius: 20,
-                        offset: const Offset(0, 10),
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  child: const Center(
+                    child: Text(
+                      'Attendance Monitoring',
+                      style: TextStyle(
+                        fontSize: 26,
+                        fontWeight: FontWeight.w800,
+                        color: Colors.black,
                       ),
-                    ],
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      _Segmented(
-                        left: 'Today',
-                        right: 'This Week',
-                        index: _tab,
-                        onChanged: (i) => setState(() => _tab = i),
-                      ),
-
-                      const SizedBox(height: 20),
-
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 4),
-                        child: Text(
-                          "Recent Activity Logs (${items.length})",
-                          style: TextStyle(
-                            fontWeight: FontWeight.w900,
-                            color: AppTheme.ink.withOpacity(0.7),
-                            fontSize: 16,
-                          ),
-                        ),
-                      ),
-
-                      const SizedBox(height: 12),
-
-                      if (items.isEmpty)
-                        Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 40),
-                          child: Center(
-                            child: Text(
-                              "No logs found for this period",
-                              style: TextStyle(
-                                color: AppTheme.ink.withOpacity(0.4),
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                        )
-                      else
-                        ...items.map(
-                          (e) => Padding(
-                            padding: const EdgeInsets.only(bottom: 12),
-                            child: _EmployeeRow(item: e),
-                          ),
-                        ),
-                    ],
+                    ),
                   ),
                 ),
-                const SizedBox(height: 18),
+                Divider(
+                  color: Colors.black.withOpacity(0.15),
+                  thickness: 1,
+                  height: 1,
+                ),
               ],
             ),
-          ),
-        ],
+
+            const SizedBox(height: 16),
+
+            // ✅ Section 2: Body Content (Re-applied horizontal padding)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _StatCard(
+                          title: 'Currently Clocked In',
+                          value: clockedInCount.toString(),
+                          background: AppTheme.teal,
+                        ),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: _StatCard(
+                          title: 'Clocked Out Today',
+                          value: clockedOutCount.toString(),
+                          background: const Color(0xFFFFA826),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _StatCard(
+                          title: 'Missing Time-Out',
+                          value: alertCount.toString(),
+                          background: const Color(0xFFE74C3C),
+                        ),
+                      ),
+                      const SizedBox(width: 14),
+                      const Expanded(
+                        child: _StatCard(
+                          title: 'Overtime Detected',
+                          value: '0',
+                          background: AppTheme.teal,
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  // Main Container for Employee Logs
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.9),
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(color: Colors.black.withOpacity(0.05)),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.05),
+                          blurRadius: 20,
+                          offset: const Offset(0, 10),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        _Segmented(
+                          left: 'Today',
+                          right: 'This Week',
+                          index: _tab,
+                          onChanged: (i) => setState(() => _tab = i),
+                        ),
+
+                        const SizedBox(height: 20),
+
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                          child: Text(
+                            "Recent Activity Logs (${items.length})",
+                            style: TextStyle(
+                              fontWeight: FontWeight.w900,
+                              color: AppTheme.ink.withOpacity(0.7),
+                              fontSize: 16,
+                            ),
+                          ),
+                        ),
+
+                        const SizedBox(height: 12),
+
+                        if (items.isEmpty)
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 40),
+                            child: Center(
+                              child: Text(
+                                "No logs found for this period",
+                                style: TextStyle(
+                                  color: AppTheme.ink.withOpacity(0.4),
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          )
+                        else
+                          ...items.map(
+                            (e) => Padding(
+                              padding: const EdgeInsets.only(bottom: 12),
+                              child: _EmployeeRow(item: e),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
-      )
     );
   }
 }
