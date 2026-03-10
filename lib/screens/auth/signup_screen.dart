@@ -160,157 +160,184 @@ class _SignupScreenState extends State<SignupScreen> {
     // This prevents the background from moving when the keyboard opens.
     return NutechBackground(
       child: SafeArea(
-        child: SingleChildScrollView(
-          // KeyboardDismissBehavior ensures keyboard hides when you scroll
-          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-          padding: const EdgeInsets.fromLTRB(24, 60, 24, 40),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const NutechLogo(),
-              const SizedBox(height: 18),
+        child: Column(
+          children: [
+            // 🔙 Reusable back button
+            Align(
+              alignment: Alignment.centerLeft,
+              child: IconButton(
+                onPressed: () => Navigator.pop(context),
+                icon: const Icon(Icons.arrow_back_ios_new_rounded),
+              ),
+            ),
+            Expanded(
+              child: SingleChildScrollView(
+                // KeyboardDismissBehavior ensures keyboard hides when you scroll
+                keyboardDismissBehavior:
+                    ScrollViewKeyboardDismissBehavior.onDrag,
+                padding: const EdgeInsets.fromLTRB(24, 0, 24, 40),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const NutechLogo(),
+                    const SizedBox(height: 18),
 
-              Center(
-                child: InkWell(
-                  onTap: _pickAndCropProfile,
-                  borderRadius: BorderRadius.circular(999),
-                  child: Container(
-                    width: 92,
-                    height: 92,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white, width: 3),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.12),
-                          blurRadius: 14,
-                          offset: const Offset(0, 7),
+                    Center(
+                      child: InkWell(
+                        onTap: _pickAndCropProfile,
+                        borderRadius: BorderRadius.circular(999),
+                        child: Container(
+                          width: 92,
+                          height: 92,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.white, width: 3),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.12),
+                                blurRadius: 14,
+                                offset: const Offset(0, 7),
+                              ),
+                            ],
+                          ),
+                          child: ClipOval(
+                            child: (_webImage != null || _profileFile != null)
+                                ? (kIsWeb
+                                      ? Image.network(
+                                          _webImage!,
+                                          fit: BoxFit.cover,
+                                        )
+                                      : Image.file(
+                                          _profileFile!,
+                                          fit: BoxFit.cover,
+                                        ))
+                                : Image.asset(
+                                    'assets/images/addimage.png',
+                                    fit: BoxFit.cover,
+                                  ),
+                          ),
                         ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 24),
+
+                    _label('Name'),
+                    NutechTextField(
+                      hint: 'Enter name',
+                      controller: _nameController,
+                    ),
+                    const SizedBox(height: 16),
+
+                    _label('Email Address'),
+                    NutechTextField(
+                      hint: 'Enter email',
+                      keyboardType: TextInputType.emailAddress,
+                      controller: _emailController,
+                    ),
+                    const SizedBox(height: 16),
+
+                    _label('Address'),
+                    NutechTextField(
+                      hint: 'Enter address',
+                      controller: _addressController,
+                    ),
+                    const SizedBox(height: 16),
+
+                    _label('Contact Number'),
+                    NutechTextField(
+                      hint: 'Enter contact number',
+                      keyboardType: TextInputType.phone,
+                      controller: _phoneController,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.digitsOnly,
+                        LengthLimitingTextInputFormatter(11),
                       ],
                     ),
-                    child: ClipOval(
-                      child: (_webImage != null || _profileFile != null)
-                          ? (kIsWeb
-                                ? Image.network(_webImage!, fit: BoxFit.cover)
-                                : Image.file(_profileFile!, fit: BoxFit.cover))
-                          : Image.asset(
-                              'assets/images/addimage.png',
-                              fit: BoxFit.cover,
-                            ),
+                    const SizedBox(height: 16),
+
+                    _label('Birthdate'),
+                    NutechTextField(
+                      hint: 'Select birthdate',
+                      readOnly: true,
+                      controller: _birthdateController,
+                      onTap: _selectBirthdate,
+                      suffix: const Icon(
+                        Icons.calendar_month,
+                        color: AppTheme.teal,
+                      ),
                     ),
-                  ),
+
+                    const SizedBox(height: 32),
+
+                    PrimaryButton(
+                      label: 'Continue',
+                      onPressed: () {
+                        final name = _nameController.text.trim();
+                        final email = _emailController.text.trim();
+                        final address = _addressController.text.trim();
+                        final phone = _phoneController.text.trim();
+                        final birthdate = _birthdateController.text.trim();
+
+                        if (name.isEmpty ||
+                            email.isEmpty ||
+                            address.isEmpty ||
+                            phone.isEmpty ||
+                            birthdate.isEmpty) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Please fill in all details'),
+                              backgroundColor: Colors.redAccent,
+                            ),
+                          );
+                          return;
+                        }
+
+                        if (phone.length != 11) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                'Contact number must be exactly 11 digits',
+                              ),
+                              backgroundColor: Colors.redAccent,
+                            ),
+                          );
+                          return;
+                        }
+
+                        if (_profileFile == null && _webImage == null) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Please upload a profile photo'),
+                              backgroundColor: Colors.redAccent,
+                            ),
+                          );
+                          return;
+                        }
+
+                        final Map<String, dynamic> registrationData = {
+                          'full_name': name,
+                          'email': email,
+                          'address': address,
+                          'contact_number': phone,
+                          'birthdate': birthdate,
+                          'profile_image': kIsWeb ? _webImage : _profileFile,
+                        };
+
+                        Navigator.pushNamed(
+                          context,
+                          RegisterPasswordScreen.route,
+                          arguments: registrationData,
+                        );
+                      },
+                    ),
+                    // Extra padding at the bottom for better scroll feel on 6.67" screens
+                    const SizedBox(height: 20),
+                  ],
                 ),
               ),
-
-              const SizedBox(height: 24),
-
-              _label('Name'),
-              NutechTextField(hint: 'Enter name', controller: _nameController),
-              const SizedBox(height: 16),
-
-              _label('Email Address'),
-              NutechTextField(
-                hint: 'Enter email',
-                keyboardType: TextInputType.emailAddress,
-                controller: _emailController,
-              ),
-              const SizedBox(height: 16),
-
-              _label('Address'),
-              NutechTextField(
-                hint: 'Enter address',
-                controller: _addressController,
-              ),
-              const SizedBox(height: 16),
-
-              _label('Contact Number'),
-              NutechTextField(
-                hint: 'Enter contact number',
-                keyboardType: TextInputType.phone,
-                controller: _phoneController,
-                inputFormatters: [
-                  FilteringTextInputFormatter.digitsOnly,
-                  LengthLimitingTextInputFormatter(11),
-                ],
-              ),
-              const SizedBox(height: 16),
-
-              _label('Birthdate'),
-              NutechTextField(
-                hint: 'Select birthdate',
-                readOnly: true,
-                controller: _birthdateController,
-                onTap: _selectBirthdate,
-                suffix: const Icon(Icons.calendar_month, color: AppTheme.teal),
-              ),
-
-              const SizedBox(height: 32),
-
-              PrimaryButton(
-                label: 'Continue',
-                onPressed: () {
-                  final name = _nameController.text.trim();
-                  final email = _emailController.text.trim();
-                  final address = _addressController.text.trim();
-                  final phone = _phoneController.text.trim();
-                  final birthdate = _birthdateController.text.trim();
-
-                  if (name.isEmpty ||
-                      email.isEmpty ||
-                      address.isEmpty ||
-                      phone.isEmpty ||
-                      birthdate.isEmpty) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Please fill in all details'),
-                        backgroundColor: Colors.redAccent,
-                      ),
-                    );
-                    return;
-                  }
-
-                  if (phone.length != 11) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text(
-                          'Contact number must be exactly 11 digits',
-                        ),
-                        backgroundColor: Colors.redAccent,
-                      ),
-                    );
-                    return;
-                  }
-
-                  if (_profileFile == null && _webImage == null) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Please upload a profile photo'),
-                        backgroundColor: Colors.redAccent,
-                      ),
-                    );
-                    return;
-                  }
-
-                  final Map<String, dynamic> registrationData = {
-                    'full_name': name,
-                    'email': email,
-                    'address': address,
-                    'contact_number': phone,
-                    'birthdate': birthdate,
-                    'profile_image': kIsWeb ? _webImage : _profileFile,
-                  };
-
-                  Navigator.pushNamed(
-                    context,
-                    RegisterPasswordScreen.route,
-                    arguments: registrationData,
-                  );
-                },
-              ),
-              // Extra padding at the bottom for better scroll feel on 6.67" screens
-              const SizedBox(height: 20),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

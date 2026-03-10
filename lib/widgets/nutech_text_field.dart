@@ -8,14 +8,15 @@ class NutechTextField extends StatelessWidget {
   final Widget? suffix;
   final TextEditingController? controller;
   final TextInputType keyboardType;
+  final ValueChanged<String>? onChanged;
 
   final bool readOnly;
   final VoidCallback? onTap;
   final bool enabled;
-  final Widget? suffixIcon; 
-  
+  final Widget? suffixIcon;
+
   // ✅ Added this to accept the formatters from SignupScreen
-  final List<TextInputFormatter>? inputFormatters; 
+  final List<TextInputFormatter>? inputFormatters;
 
   const NutechTextField({
     super.key,
@@ -24,6 +25,7 @@ class NutechTextField extends StatelessWidget {
     this.suffix,
     this.controller,
     this.keyboardType = TextInputType.text,
+    this.onChanged,
     this.readOnly = false,
     this.onTap,
     this.enabled = true,
@@ -53,9 +55,10 @@ class NutechTextField extends StatelessWidget {
         readOnly: readOnly,
         onTap: onTap,
         enabled: enabled,
-        
-        // ✅ Pass the formatters into the internal TextField
-        inputFormatters: inputFormatters, 
+        onChanged: onChanged,
+
+        // Pass the formatters into the internal TextField
+        inputFormatters: inputFormatters,
 
         decoration: InputDecoration(
           hintText: hint,
@@ -63,15 +66,21 @@ class NutechTextField extends StatelessWidget {
           border: InputBorder.none,
           enabledBorder: InputBorder.none,
           focusedBorder: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-          
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 16,
+          ),
+
           suffixIcon: (suffixIcon ?? suffix) == null
               ? null
               : Padding(
                   padding: const EdgeInsets.only(right: 6),
                   child: suffixIcon ?? suffix,
                 ),
-          suffixIconConstraints: const BoxConstraints(minWidth: 44, minHeight: 44),
+          suffixIconConstraints: const BoxConstraints(
+            minWidth: 44,
+            minHeight: 44,
+          ),
         ),
       ),
     );

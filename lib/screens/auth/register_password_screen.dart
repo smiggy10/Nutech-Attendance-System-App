@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 import '../../widgets/nutech_background.dart';
 import '../../widgets/nutech_text_field.dart';
 import '../../widgets/primary_button.dart';
-import '../../widgets/nutech_logo.dart'; 
+import '../../widgets/nutech_logo.dart';
 import 'verify_email_screen.dart';
 import '../../services/n8n_api.dart';
 
@@ -16,12 +16,10 @@ class RegisterPasswordScreen extends StatefulWidget {
   static const route = '/register-password';
 
   @override
-  State<RegisterPasswordScreen> createState() =>
-      _RegisterPasswordScreenState();
+  State<RegisterPasswordScreen> createState() => _RegisterPasswordScreenState();
 }
 
-class _RegisterPasswordScreenState
-    extends State<RegisterPasswordScreen> {
+class _RegisterPasswordScreenState extends State<RegisterPasswordScreen> {
   bool _obscure1 = true;
   bool _obscure2 = true;
 
@@ -29,6 +27,8 @@ class _RegisterPasswordScreenState
   final TextEditingController _confirmPassController = TextEditingController();
 
   bool _isSubmitting = false;
+  String? _passwordError;
+  String? _confirmPasswordError;
 
   @override
   void dispose() {
@@ -37,27 +37,51 @@ class _RegisterPasswordScreenState
     super.dispose();
   }
 
+  void _validatePassword() {
+    setState(() {
+      if (_passController.text.isEmpty) {
+        _passwordError = null;
+      } else if (_passController.text.length < 8) {
+        _passwordError = 'Password must be at least 8 characters long.';
+      } else {
+        _passwordError = null;
+      }
+    });
+  }
+
+  void _validateConfirmPassword() {
+    setState(() {
+      if (_confirmPassController.text.isEmpty) {
+        _confirmPasswordError = null;
+      } else if (_passController.text != _confirmPassController.text) {
+        _confirmPasswordError = 'Passwords do not match.';
+      } else {
+        _confirmPasswordError = null;
+      }
+    });
+  }
+
+  bool _isFormValid() {
+    return _passController.text.length >= 8 &&
+        _passController.text == _confirmPassController.text &&
+        _passwordError == null &&
+        _confirmPasswordError == null;
+  }
+
   Future<void> _handleSubmit() async {
-    final args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
+    // Run validation first
+    _validatePassword();
+    _validateConfirmPassword();
 
-    if (_passController.text.isEmpty || _confirmPassController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please fill in all password fields')),
-      );
+    // Check if form is valid
+    if (!_isFormValid()) {
       return;
     }
 
-    if (_passController.text != _confirmPassController.text) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Passwords do not match!')),
-      );
-      return;
-    }
+    final args =
+        ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
 
-    final fullRegistrationData = {
-      ...args,
-      'password': _passController.text,
-    };
+    final fullRegistrationData = {...args, 'password': _passController.text};
 
     // Prepare base64-encoded profile image for n8n (if available).
     String profileImageBase64 = '';
@@ -79,14 +103,15 @@ class _RegisterPasswordScreenState
         'contactNumber': fullRegistrationData['contact_number'],
         'birthdate': fullRegistrationData['birthdate'],
         'password': fullRegistrationData['password'],
-         // n8n workflow expects this exact key.
+        // n8n workflow expects this exact key.
         'profileImageBase64': profileImageBase64,
       };
 
       final response = await N8nApi.registerUser(n8nPayload);
 
       final success = response['success'] == true || response.isEmpty;
-      final message = response['message']?.toString() ??
+      final message =
+          response['message']?.toString() ??
           'Registration submitted. Please check your email for the OTP.';
 
       if (!mounted) return;
@@ -103,7 +128,7 @@ class _RegisterPasswordScreenState
       }
 
       Navigator.pushReplacementNamed(
-        context, 
+        context,
         VerifyEmailScreen.route,
         arguments: fullRegistrationData,
       );
@@ -152,10 +177,7 @@ class _RegisterPasswordScreenState
               const Text(
                 'Create a Password',
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w800,
-                ),
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
               ),
 
               const SizedBox(height: 28),
@@ -165,7 +187,7 @@ class _RegisterPasswordScreenState
                 child: Text(
                   'Enter Password',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
               ),
@@ -175,16 +197,27 @@ class _RegisterPasswordScreenState
                 hint: 'Enter password',
                 controller: _passController,
                 obscureText: _obscure1,
+                onChanged: (value) => _validatePassword(),
                 suffix: IconButton(
                   icon: Image.asset(
                     'assets/icons/visibility.png',
                     width: 22,
                     height: 22,
                   ),
-                  onPressed: () =>
-                      setState(() => _obscure1 = !_obscure1),
+                  onPressed: () => setState(() => _obscure1 = !_obscure1),
                 ),
               ),
+              if (_passwordError != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: Text(
+                    _passwordError!,
+                    style: const TextStyle(
+                      color: Colors.redAccent,
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
 
               const SizedBox(height: 18),
 
@@ -193,7 +226,7 @@ class _RegisterPasswordScreenState
                 child: Text(
                   'Confirm Password',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
               ),
@@ -203,22 +236,35 @@ class _RegisterPasswordScreenState
                 hint: 'Re-enter password',
                 controller: _confirmPassController,
                 obscureText: _obscure2,
+                onChanged: (value) => _validateConfirmPassword(),
                 suffix: IconButton(
                   icon: Image.asset(
                     'assets/icons/visibility.png',
                     width: 22,
                     height: 22,
                   ),
-                  onPressed: () =>
-                      setState(() => _obscure2 = !_obscure2),
+                  onPressed: () => setState(() => _obscure2 = !_obscure2),
                 ),
               ),
+              if (_confirmPasswordError != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: Text(
+                    _confirmPasswordError!,
+                    style: const TextStyle(
+                      color: Colors.redAccent,
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
 
               const SizedBox(height: 32),
 
               PrimaryButton(
                 label: 'Submit',
-                onPressed: _isSubmitting ? null : _handleSubmit,
+                onPressed: (_isSubmitting || !_isFormValid())
+                    ? null
+                    : _handleSubmit,
               ),
 
               // Extra space for large phone screens
