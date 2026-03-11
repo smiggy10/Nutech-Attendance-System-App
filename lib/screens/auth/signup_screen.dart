@@ -35,6 +35,7 @@ class _SignupScreenState extends State<SignupScreen> {
 
   File? _profileFile;
   String? _webImage;
+  String? _photoError;
 
   bool _isValidFullName(String name) {
     final trimmed = name.trim();
@@ -139,6 +140,7 @@ class _SignupScreenState extends State<SignupScreen> {
           _profileFile = File(cropped.path);
           debugPrint('Mobile file set: ${_profileFile!.path}');
         }
+        _photoError = null;
       });
     } catch (e, stackTrace) {
       debugPrint('Error in _pickAndCropProfile: $e');
@@ -232,6 +234,18 @@ class _SignupScreenState extends State<SignupScreen> {
                         ),
                       ),
                     ),
+                    if (_photoError != null) ...[
+                      const SizedBox(height: 10),
+                      Text(
+                        _photoError!,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          color: Colors.redAccent,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
 
                     const SizedBox(height: 24),
 
@@ -343,9 +357,15 @@ class _SignupScreenState extends State<SignupScreen> {
                         }
 
                         if (_profileFile == null && _webImage == null) {
+                          setState(() {
+                            _photoError =
+                                'Please upload your photo before continuing.';
+                          });
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
-                              content: Text('Please upload a profile photo'),
+                              content: Text(
+                                'Please upload your photo before continuing.',
+                              ),
                               backgroundColor: Colors.redAccent,
                             ),
                           );
