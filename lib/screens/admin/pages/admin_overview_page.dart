@@ -60,10 +60,6 @@ class _AdminOverviewPageState extends State<AdminOverviewPage> {
         .where((l) => l['status'] == 'on-time')
         .length;
     final lateCount = _todayLogs.where((l) => l['status'] == 'late').length;
-    final absentCount = _todayLogs.where((l) => l['status'] == 'absent').length;
-    final clockedInCount = _todayLogs
-        .where((l) => l['isClockedIn'] == true)
-        .length;
     final totalEmployees = _allEmployees.length;
 
     return SingleChildScrollView(
@@ -134,28 +130,7 @@ class _AdminOverviewPageState extends State<AdminOverviewPage> {
                         title: 'Late Today',
                         value: lateCount.toString(),
                         isDanger: true,
-                        backgroundColor: const Color(0xFFFFA826),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _MiniStat(
-                        title: 'Absent Today',
-                        value: absentCount.toString(),
-                        isDanger: false,
                         backgroundColor: const Color(0xFFE74C3C),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _MiniStat(
-                        title: 'Clocked in Now',
-                        value: clockedInCount.toString(),
-                        isDanger: false,
                       ),
                     ),
                   ],
