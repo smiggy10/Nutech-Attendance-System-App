@@ -36,6 +36,19 @@ class _SignupScreenState extends State<SignupScreen> {
   File? _profileFile;
   String? _webImage;
 
+  bool _isValidFullName(String name) {
+    final trimmed = name.trim();
+    if (trimmed.isEmpty) return false;
+    final nameRegex = RegExp(r'^[A-Za-z.\s]+$');
+    return nameRegex.hasMatch(trimmed);
+  }
+
+  bool _isValidEmail(String email) {
+    final trimmed = email.trim();
+    final emailRegex = RegExp(r'^[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+\.[A-Za-z]{2,}$');
+    return emailRegex.hasMatch(trimmed);
+  }
+
   Future<void> _selectBirthdate() async {
     DateTime? picked = await showDatePicker(
       context: context,
@@ -222,9 +235,9 @@ class _SignupScreenState extends State<SignupScreen> {
 
                     const SizedBox(height: 24),
 
-                    _label('Name'),
+                    _label('Full Name'),
                     NutechTextField(
-                      hint: 'Enter name',
+                      hint: 'Enter Full Name',
                       controller: _nameController,
                     ),
                     const SizedBox(height: 16),
@@ -287,6 +300,30 @@ class _SignupScreenState extends State<SignupScreen> {
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
                               content: Text('Please fill in all details'),
+                              backgroundColor: Colors.redAccent,
+                            ),
+                          );
+                          return;
+                        }
+
+                        if (!_isValidFullName(name)) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                'Full Name can only contain letters, spaces, and periods.',
+                              ),
+                              backgroundColor: Colors.redAccent,
+                            ),
+                          );
+                          return;
+                        }
+
+                        if (!_isValidEmail(email)) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                'Please enter a valid email address.',
+                              ),
                               backgroundColor: Colors.redAccent,
                             ),
                           );
