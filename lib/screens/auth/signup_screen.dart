@@ -49,9 +49,6 @@ class _SignupScreenState extends State<SignupScreen> {
   String? _birthdateError;
   String? _photoError;
 
-  final LayerLink _photoLayerLink = LayerLink();
-  OverlayEntry? _photoOverlayEntry;
-
   bool _isValidFullName(String name) {
     final trimmed = name.trim();
     if (trimmed.isEmpty) return false;
@@ -159,7 +156,6 @@ class _SignupScreenState extends State<SignupScreen> {
         }
         _photoError = null;
       });
-      _removePhotoOverlay();
     } catch (e, stackTrace) {
       debugPrint('Error in _pickAndCropProfile: $e');
       debugPrint('Stack trace: $stackTrace');
@@ -177,39 +173,13 @@ class _SignupScreenState extends State<SignupScreen> {
     );
   }
 
-  void _removePhotoOverlay() {
-    _photoOverlayEntry?.remove();
-    _photoOverlayEntry = null;
-  }
-
-  void _showPhotoOverlay(String message) {
-    _removePhotoOverlay();
-    final overlay = Overlay.of(context);
-
-    _photoOverlayEntry = OverlayEntry(
-      builder: (context) {
-        return Positioned.fill(
-          child: IgnorePointer(
-            ignoring: true,
-            child: CompositedTransformFollower(
-              link: _photoLayerLink,
-              showWhenUnlinked: false,
-              offset: const Offset(-4, 104),
-              child: Material(
-                color: Colors.transparent,
-                child: _FieldTooltip(message: message),
-              ),
-            ),
-          ),
-        );
-      },
+  void _showBottomToast(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red, // Red background for warning messages
+      ),
     );
-
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      if (_photoOverlayEntry == null) return;
-      overlay.insert(_photoOverlayEntry!);
-    });
   }
 
   @override
@@ -226,7 +196,6 @@ class _SignupScreenState extends State<SignupScreen> {
     _phoneFocus.dispose();
     _birthdateFocus.dispose();
 
-    _removePhotoOverlay();
     super.dispose();
   }
 
@@ -259,46 +228,43 @@ class _SignupScreenState extends State<SignupScreen> {
                     const SizedBox(height: 18),
 
                     Center(
-                      child: CompositedTransformTarget(
-                        link: _photoLayerLink,
-                        child: InkWell(
-                          onTap: _pickAndCropProfile,
-                          borderRadius: BorderRadius.circular(999),
-                          child: Container(
-                            width: 92,
-                            height: 92,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: _photoError != null
-                                    ? Colors.redAccent
-                                    : Colors.white,
-                                width: 3,
+                      child: InkWell(
+                        onTap: _pickAndCropProfile,
+                        borderRadius: BorderRadius.circular(999),
+                        child: Container(
+                          width: 92,
+                          height: 92,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: _photoError != null
+                                  ? Colors.redAccent
+                                  : Colors.white,
+                              width: 3,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.12),
+                                blurRadius: 14,
+                                offset: const Offset(0, 7),
                               ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(0.12),
-                                  blurRadius: 14,
-                                  offset: const Offset(0, 7),
-                                ),
-                              ],
-                            ),
-                            child: ClipOval(
-                              child: (_webImage != null || _profileFile != null)
-                                  ? (kIsWeb
-                                        ? Image.network(
-                                            _webImage!,
-                                            fit: BoxFit.cover,
-                                          )
-                                        : Image.file(
-                                            _profileFile!,
-                                            fit: BoxFit.cover,
-                                          ))
-                                  : Image.asset(
-                                      'assets/images/addimage.png',
-                                      fit: BoxFit.cover,
-                                    ),
-                            ),
+                            ],
+                          ),
+                          child: ClipOval(
+                            child: (_webImage != null || _profileFile != null)
+                                ? (kIsWeb
+                                      ? Image.network(
+                                          _webImage!,
+                                          fit: BoxFit.cover,
+                                        )
+                                      : Image.file(
+                                          _profileFile!,
+                                          fit: BoxFit.cover,
+                                        ))
+                                : Image.asset(
+                                    'assets/images/addimage.png',
+                                    fit: BoxFit.cover,
+                                  ),
                           ),
                         ),
                       ),
@@ -406,7 +372,6 @@ class _SignupScreenState extends State<SignupScreen> {
                           _birthdateError = null;
                           _photoError = null;
                         });
-                        _removePhotoOverlay();
 
                         if (name.isEmpty) {
                           setState(() => _nameError = 'Full Name is required.');
@@ -472,7 +437,7 @@ class _SignupScreenState extends State<SignupScreen> {
                           final msg =
                               'Please upload your photo before continuing.';
                           setState(() => _photoError = msg);
-                          _showPhotoOverlay(msg);
+                          _showBottomToast(msg);
                           return;
                         }
 
@@ -502,100 +467,5 @@ class _SignupScreenState extends State<SignupScreen> {
         ),
       ),
     );
-  }
-}
-
-class _FieldTooltip extends StatelessWidget {
-  const _FieldTooltip({required this.message});
-  final String message;
-
-  @override
-  Widget build(BuildContext context) {
-    return ConstrainedBox(
-      constraints: const BoxConstraints(maxWidth: 520),
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.black.withOpacity(0.18)),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.14),
-                  blurRadius: 10,
-                  offset: const Offset(0, 6),
-                ),
-              ],
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(
-                  Icons.error_outline,
-                  size: 18,
-                  color: Colors.deepOrange,
-                ),
-                const SizedBox(width: 8),
-                Flexible(
-                  child: Text(
-                    message,
-                    style: const TextStyle(
-                      color: Colors.black87,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Positioned(
-            top: -6,
-            left: 26,
-            child: CustomPaint(
-              size: const Size(14, 8),
-              painter: _TooltipArrowPainter(
-                fillColor: Colors.white,
-                borderColor: Colors.black.withOpacity(0.18),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _TooltipArrowPainter extends CustomPainter {
-  _TooltipArrowPainter({required this.fillColor, required this.borderColor});
-
-  final Color fillColor;
-  final Color borderColor;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final fillPaint = Paint()..color = fillColor;
-    final borderPaint = Paint()
-      ..color = borderColor
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1;
-
-    final path = Path()
-      ..moveTo(0, size.height)
-      ..lineTo(size.width / 2, 0)
-      ..lineTo(size.width, size.height)
-      ..close();
-
-    canvas.drawPath(path, fillPaint);
-    canvas.drawPath(path, borderPaint);
-  }
-
-  @override
-  bool shouldRepaint(covariant _TooltipArrowPainter oldDelegate) {
-    return oldDelegate.fillColor != fillColor ||
-        oldDelegate.borderColor != borderColor;
   }
 }
