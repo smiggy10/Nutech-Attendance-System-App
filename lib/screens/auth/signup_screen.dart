@@ -33,9 +33,24 @@ class _SignupScreenState extends State<SignupScreen> {
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _birthdateController = TextEditingController();
 
+  final FocusNode _nameFocus = FocusNode();
+  final FocusNode _emailFocus = FocusNode();
+  final FocusNode _addressFocus = FocusNode();
+  final FocusNode _phoneFocus = FocusNode();
+  final FocusNode _birthdateFocus = FocusNode();
+
   File? _profileFile;
   String? _webImage;
+
+  String? _nameError;
+  String? _emailError;
+  String? _addressError;
+  String? _phoneError;
+  String? _birthdateError;
   String? _photoError;
+
+  final LayerLink _photoLayerLink = LayerLink();
+  OverlayEntry? _photoOverlayEntry;
 
   bool _isValidFullName(String name) {
     final trimmed = name.trim();
@@ -46,7 +61,9 @@ class _SignupScreenState extends State<SignupScreen> {
 
   bool _isValidEmail(String email) {
     final trimmed = email.trim();
-    final emailRegex = RegExp(r'^[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+\.[A-Za-z]{2,}$');
+    final emailRegex = RegExp(
+      r'^[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+\.[A-Za-z]{2,}$',
+    );
     return emailRegex.hasMatch(trimmed);
   }
 
@@ -142,6 +159,7 @@ class _SignupScreenState extends State<SignupScreen> {
         }
         _photoError = null;
       });
+      _removePhotoOverlay();
     } catch (e, stackTrace) {
       debugPrint('Error in _pickAndCropProfile: $e');
       debugPrint('Stack trace: $stackTrace');
@@ -159,6 +177,41 @@ class _SignupScreenState extends State<SignupScreen> {
     );
   }
 
+  void _removePhotoOverlay() {
+    _photoOverlayEntry?.remove();
+    _photoOverlayEntry = null;
+  }
+
+  void _showPhotoOverlay(String message) {
+    _removePhotoOverlay();
+    final overlay = Overlay.of(context);
+
+    _photoOverlayEntry = OverlayEntry(
+      builder: (context) {
+        return Positioned.fill(
+          child: IgnorePointer(
+            ignoring: true,
+            child: CompositedTransformFollower(
+              link: _photoLayerLink,
+              showWhenUnlinked: false,
+              offset: const Offset(-4, 104),
+              child: Material(
+                color: Colors.transparent,
+                child: _FieldTooltip(message: message),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (_photoOverlayEntry == null) return;
+      overlay.insert(_photoOverlayEntry!);
+    });
+  }
+
   @override
   void dispose() {
     _nameController.dispose();
@@ -166,6 +219,14 @@ class _SignupScreenState extends State<SignupScreen> {
     _addressController.dispose();
     _phoneController.dispose();
     _birthdateController.dispose();
+
+    _nameFocus.dispose();
+    _emailFocus.dispose();
+    _addressFocus.dispose();
+    _phoneFocus.dispose();
+    _birthdateFocus.dispose();
+
+    _removePhotoOverlay();
     super.dispose();
   }
 
@@ -198,54 +259,50 @@ class _SignupScreenState extends State<SignupScreen> {
                     const SizedBox(height: 18),
 
                     Center(
-                      child: InkWell(
-                        onTap: _pickAndCropProfile,
-                        borderRadius: BorderRadius.circular(999),
-                        child: Container(
-                          width: 92,
-                          height: 92,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            border: Border.all(color: Colors.white, width: 3),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.12),
-                                blurRadius: 14,
-                                offset: const Offset(0, 7),
+                      child: CompositedTransformTarget(
+                        link: _photoLayerLink,
+                        child: InkWell(
+                          onTap: _pickAndCropProfile,
+                          borderRadius: BorderRadius.circular(999),
+                          child: Container(
+                            width: 92,
+                            height: 92,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: _photoError != null
+                                    ? Colors.redAccent
+                                    : Colors.white,
+                                width: 3,
                               ),
-                            ],
-                          ),
-                          child: ClipOval(
-                            child: (_webImage != null || _profileFile != null)
-                                ? (kIsWeb
-                                      ? Image.network(
-                                          _webImage!,
-                                          fit: BoxFit.cover,
-                                        )
-                                      : Image.file(
-                                          _profileFile!,
-                                          fit: BoxFit.cover,
-                                        ))
-                                : Image.asset(
-                                    'assets/images/addimage.png',
-                                    fit: BoxFit.cover,
-                                  ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.12),
+                                  blurRadius: 14,
+                                  offset: const Offset(0, 7),
+                                ),
+                              ],
+                            ),
+                            child: ClipOval(
+                              child: (_webImage != null || _profileFile != null)
+                                  ? (kIsWeb
+                                        ? Image.network(
+                                            _webImage!,
+                                            fit: BoxFit.cover,
+                                          )
+                                        : Image.file(
+                                            _profileFile!,
+                                            fit: BoxFit.cover,
+                                          ))
+                                  : Image.asset(
+                                      'assets/images/addimage.png',
+                                      fit: BoxFit.cover,
+                                    ),
+                            ),
                           ),
                         ),
                       ),
                     ),
-                    if (_photoError != null) ...[
-                      const SizedBox(height: 10),
-                      Text(
-                        _photoError!,
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          color: Colors.redAccent,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
 
                     const SizedBox(height: 24),
 
@@ -253,6 +310,13 @@ class _SignupScreenState extends State<SignupScreen> {
                     NutechTextField(
                       hint: 'Enter Full Name',
                       controller: _nameController,
+                      focusNode: _nameFocus,
+                      errorText: _nameError,
+                      onChanged: (_) {
+                        if (_nameError != null) {
+                          setState(() => _nameError = null);
+                        }
+                      },
                     ),
                     const SizedBox(height: 16),
 
@@ -261,6 +325,13 @@ class _SignupScreenState extends State<SignupScreen> {
                       hint: 'Enter email',
                       keyboardType: TextInputType.emailAddress,
                       controller: _emailController,
+                      focusNode: _emailFocus,
+                      errorText: _emailError,
+                      onChanged: (_) {
+                        if (_emailError != null) {
+                          setState(() => _emailError = null);
+                        }
+                      },
                     ),
                     const SizedBox(height: 16),
 
@@ -268,6 +339,13 @@ class _SignupScreenState extends State<SignupScreen> {
                     NutechTextField(
                       hint: 'Enter address',
                       controller: _addressController,
+                      focusNode: _addressFocus,
+                      errorText: _addressError,
+                      onChanged: (_) {
+                        if (_addressError != null) {
+                          setState(() => _addressError = null);
+                        }
+                      },
                     ),
                     const SizedBox(height: 16),
 
@@ -276,10 +354,17 @@ class _SignupScreenState extends State<SignupScreen> {
                       hint: 'Enter contact number',
                       keyboardType: TextInputType.phone,
                       controller: _phoneController,
+                      focusNode: _phoneFocus,
+                      errorText: _phoneError,
                       inputFormatters: [
                         FilteringTextInputFormatter.digitsOnly,
                         LengthLimitingTextInputFormatter(11),
                       ],
+                      onChanged: (_) {
+                        if (_phoneError != null) {
+                          setState(() => _phoneError = null);
+                        }
+                      },
                     ),
                     const SizedBox(height: 16),
 
@@ -288,7 +373,14 @@ class _SignupScreenState extends State<SignupScreen> {
                       hint: 'Select birthdate',
                       readOnly: true,
                       controller: _birthdateController,
-                      onTap: _selectBirthdate,
+                      focusNode: _birthdateFocus,
+                      errorText: _birthdateError,
+                      onTap: () async {
+                        if (_birthdateError != null) {
+                          setState(() => _birthdateError = null);
+                        }
+                        await _selectBirthdate();
+                      },
                       suffix: const Icon(
                         Icons.calendar_month,
                         color: AppTheme.teal,
@@ -306,69 +398,81 @@ class _SignupScreenState extends State<SignupScreen> {
                         final phone = _phoneController.text.trim();
                         final birthdate = _birthdateController.text.trim();
 
-                        if (name.isEmpty ||
-                            email.isEmpty ||
-                            address.isEmpty ||
-                            phone.isEmpty ||
-                            birthdate.isEmpty) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Please fill in all details'),
-                              backgroundColor: Colors.redAccent,
-                            ),
+                        setState(() {
+                          _nameError = null;
+                          _emailError = null;
+                          _addressError = null;
+                          _phoneError = null;
+                          _birthdateError = null;
+                          _photoError = null;
+                        });
+                        _removePhotoOverlay();
+
+                        if (name.isEmpty) {
+                          setState(() => _nameError = 'Full Name is required.');
+                          _nameFocus.requestFocus();
+                          return;
+                        }
+                        if (email.isEmpty) {
+                          setState(
+                            () => _emailError = 'Email Address is required.',
                           );
+                          _emailFocus.requestFocus();
+                          return;
+                        }
+                        if (address.isEmpty) {
+                          setState(
+                            () => _addressError = 'Address is required.',
+                          );
+                          _addressFocus.requestFocus();
+                          return;
+                        }
+                        if (phone.isEmpty) {
+                          setState(
+                            () => _phoneError = 'Contact Number is required.',
+                          );
+                          _phoneFocus.requestFocus();
+                          return;
+                        }
+                        if (birthdate.isEmpty) {
+                          setState(
+                            () => _birthdateError = 'Birthdate is required.',
+                          );
+                          _birthdateFocus.requestFocus();
                           return;
                         }
 
                         if (!_isValidFullName(name)) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text(
-                                'Full Name can only contain letters, spaces, and periods.',
-                              ),
-                              backgroundColor: Colors.redAccent,
-                            ),
-                          );
+                          setState(() {
+                            _nameError =
+                                'Full Name can only contain letters, spaces, and periods.';
+                          });
+                          _nameFocus.requestFocus();
                           return;
                         }
 
                         if (!_isValidEmail(email)) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text(
-                                'Please enter a valid email address.',
-                              ),
-                              backgroundColor: Colors.redAccent,
-                            ),
-                          );
+                          setState(() {
+                            _emailError = 'Please enter a valid email address.';
+                          });
+                          _emailFocus.requestFocus();
                           return;
                         }
 
                         if (phone.length != 11) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text(
-                                'Contact number must be exactly 11 digits',
-                              ),
-                              backgroundColor: Colors.redAccent,
-                            ),
-                          );
+                          setState(() {
+                            _phoneError =
+                                'Please enter a valid contact number.';
+                          });
+                          _phoneFocus.requestFocus();
                           return;
                         }
 
                         if (_profileFile == null && _webImage == null) {
-                          setState(() {
-                            _photoError =
-                                'Please upload your photo before continuing.';
-                          });
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text(
-                                'Please upload your photo before continuing.',
-                              ),
-                              backgroundColor: Colors.redAccent,
-                            ),
-                          );
+                          final msg =
+                              'Please upload your photo before continuing.';
+                          setState(() => _photoError = msg);
+                          _showPhotoOverlay(msg);
                           return;
                         }
 
@@ -398,5 +502,100 @@ class _SignupScreenState extends State<SignupScreen> {
         ),
       ),
     );
+  }
+}
+
+class _FieldTooltip extends StatelessWidget {
+  const _FieldTooltip({required this.message});
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 520),
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.black.withOpacity(0.18)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.14),
+                  blurRadius: 10,
+                  offset: const Offset(0, 6),
+                ),
+              ],
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  Icons.error_outline,
+                  size: 18,
+                  color: Colors.deepOrange,
+                ),
+                const SizedBox(width: 8),
+                Flexible(
+                  child: Text(
+                    message,
+                    style: const TextStyle(
+                      color: Colors.black87,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Positioned(
+            top: -6,
+            left: 26,
+            child: CustomPaint(
+              size: const Size(14, 8),
+              painter: _TooltipArrowPainter(
+                fillColor: Colors.white,
+                borderColor: Colors.black.withOpacity(0.18),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _TooltipArrowPainter extends CustomPainter {
+  _TooltipArrowPainter({required this.fillColor, required this.borderColor});
+
+  final Color fillColor;
+  final Color borderColor;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final fillPaint = Paint()..color = fillColor;
+    final borderPaint = Paint()
+      ..color = borderColor
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1;
+
+    final path = Path()
+      ..moveTo(0, size.height)
+      ..lineTo(size.width / 2, 0)
+      ..lineTo(size.width, size.height)
+      ..close();
+
+    canvas.drawPath(path, fillPaint);
+    canvas.drawPath(path, borderPaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _TooltipArrowPainter oldDelegate) {
+    return oldDelegate.fillColor != fillColor ||
+        oldDelegate.borderColor != borderColor;
   }
 }
