@@ -1,7 +1,7 @@
 import '../../../services/adminn8n.dart';
+import '../../../services/n8n_api.dart';
 import 'package:flutter/material.dart';
 import '../../../theme/app_theme.dart';
-import '../../../services/n8n_api.dart';
 import 'pending_approvals_page.dart';
 
 class AdminOverviewPage extends StatefulWidget {
@@ -12,14 +12,17 @@ class AdminOverviewPage extends StatefulWidget {
 }
 
 class _AdminOverviewPageState extends State<AdminOverviewPage> {
+  // Overview stats variables
   int _onTimeToday = 0;
   int _lateToday = 0;
   int _totalEmployees = 0;
   int _absencesThisWeek = 0;
   double _overtimeHours = 0;
-
   bool _isLoadingOverview = false;
 
+  // Pending approvals variables
+  final List<dynamic> _todayLogs = [];
+  final List<dynamic> _allEmployees = [];
   int _pendingApprovalsCount = 0;
   bool _isLoadingPending = false;
 
@@ -37,7 +40,6 @@ class _AdminOverviewPageState extends State<AdminOverviewPage> {
 
     try {
       final stats = await AdminN8n.getOverviewStats();
-
       if (!mounted) return;
 
       setState(() {
@@ -192,7 +194,7 @@ class _AdminOverviewPageState extends State<AdminOverviewPage> {
                         builder: (_) => const PendingApprovalsPage(),
                       ),
                     );
-
+                    // Refresh the count when returning from pending approvals page
                     _loadPendingApprovalsCount();
                   },
                 ),
