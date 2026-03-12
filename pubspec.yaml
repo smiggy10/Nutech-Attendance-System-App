@@ -12,9 +12,7 @@ dependencies:
     sdk: flutter
   device_preview: ^1.1.0
   image_picker: ^1.1.2
-  # Upgraded to ^11.0.0 as required by the latest platform interface
   image_cropper: ^11.0.0 
-  # Use compatible version ^7.0.0 as required by image_cropper ^11.0.0
   image_cropper_for_web: ^7.0.0 
 
   cupertino_icons: ^1.0.8
@@ -25,7 +23,7 @@ dependencies:
   csv: ^7.2.0
   path_provider: ^2.1.5
   share_plus: ^12.0.1
-  
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

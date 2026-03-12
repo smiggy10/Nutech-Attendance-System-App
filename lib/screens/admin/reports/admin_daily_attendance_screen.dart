@@ -1,7 +1,13 @@
+import 'dart:io';
+
+import 'package:csv/csv.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:nutech_app/services/adminn8n.dart';
 import 'package:nutech_app/theme/app_theme.dart';
 import 'package:nutech_app/widgets/nutech_background.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 
 class AdminDailyAttendanceScreen extends StatefulWidget {
   const AdminDailyAttendanceScreen({super.key});
@@ -9,13 +15,16 @@ class AdminDailyAttendanceScreen extends StatefulWidget {
   static const route = '/admin/daily-attendance';
 
   @override
-  State<AdminDailyAttendanceScreen> createState() => _AdminDailyAttendanceScreenState();
+  State<AdminDailyAttendanceScreen> createState() =>
+      _AdminDailyAttendanceScreenState();
 }
 
-class _AdminDailyAttendanceScreenState extends State<AdminDailyAttendanceScreen> {
-  // FIXED: Initialized with DateTime.now() to ensure it reflects the actual current date
+class _AdminDailyAttendanceScreenState
+    extends State<AdminDailyAttendanceScreen> {
   DateTime _selectedDate = DateTime.now();
-  late Future<List<_DailyRow>> _attendanceData;
+  late Future<AdminDailyAttendanceReportData> _attendanceData;
+  AdminDailyAttendanceReportData? _lastLoadedReport;
+  bool _isExporting = false;
 
   @override
   void initState() {
@@ -23,10 +32,10 @@ class _AdminDailyAttendanceScreenState extends State<AdminDailyAttendanceScreen>
     _attendanceData = _fetchAttendanceData();
   }
 
-  Future<List<_DailyRow>> _fetchAttendanceData() async {
-    await Future.delayed(const Duration(milliseconds: 500));
-    // TO SHOW "NO RECORDS FOUND": Return an empty list []
-    return [];
+  Future<AdminDailyAttendanceReportData> _fetchAttendanceData() async {
+    final report = await AdminN8n.getDailyAttendanceReport(date: _selectedDate);
+    _lastLoadedReport = report;
+    return report;
   }
 
   Future<void> _selectDate(BuildContext context) async {
@@ -34,7 +43,7 @@ class _AdminDailyAttendanceScreenState extends State<AdminDailyAttendanceScreen>
       context: context,
       initialDate: _selectedDate,
       firstDate: DateTime(2020),
-      lastDate: DateTime(2030),
+      lastDate: DateTime(2035),
       builder: (context, child) => Theme(
         data: Theme.of(context).copyWith(
           colorScheme: const ColorScheme.light(primary: AppTheme.teal),
@@ -42,6 +51,7 @@ class _AdminDailyAttendanceScreenState extends State<AdminDailyAttendanceScreen>
         child: child!,
       ),
     );
+
     if (picked != null && picked != _selectedDate) {
       setState(() {
         _selectedDate = picked;
@@ -50,9 +60,98 @@ class _AdminDailyAttendanceScreenState extends State<AdminDailyAttendanceScreen>
     }
   }
 
+  String _formatTime(String? raw) {
+    if (raw == null || raw.trim().isEmpty) return '--';
+
+    try {
+      final dt = DateTime.parse(raw).toUtc();
+      final hour = dt.hour;
+      final minute = dt.minute;
+
+      final suffix = hour >= 12 ? 'PM' : 'AM';
+      final hour12 = hour == 0
+          ? 12
+          : hour > 12
+              ? hour - 12
+              : hour;
+
+      return '$hour12:${minute.toString().padLeft(2, '0')} $suffix';
+    } catch (_) {
+      return '--';
+    }
+  }
+
+  Future<void> _exportReport() async {
+    final report = _lastLoadedReport;
+
+    if (report == null || report.rows.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No report data available to export.'),
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      _isExporting = true;
+    });
+
+    try {
+      final csvRows = <List<dynamic>>[
+        ['Daily Attendance Report'],
+        ['Date', report.date],
+        ['Present', report.present],
+        ['Late', report.late],
+        ['Absent', report.absent],
+        ['Overtime', report.overtime],
+        [],
+        ['Employee', 'User ID', 'Time In', 'Time Out', 'Hours', 'Status'],
+        ...report.rows.map(
+          (row) => [
+            row.employee,
+            row.userId,
+            _formatTime(row.timeIn),
+            _formatTime(row.timeOut),
+            row.hours.toStringAsFixed(1),
+            row.status,
+          ],
+        ),
+      ];
+
+      final csvText = csv.encode(csvRows);
+      final dir = await getTemporaryDirectory();
+      final fileName = 'daily_attendance_${report.date}.csv';
+      final file = File('${dir.path}/$fileName');
+
+      await file.writeAsString(csvText);
+
+      await SharePlus.instance.share(
+        ShareParams(
+          files: [XFile(file.path)],
+          subject: 'Daily Attendance Report - ${report.date}',
+          text: 'Daily Attendance Report - ${report.date}',
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to export CSV: $e'),
+        ),
+      );
+    } finally {
+      if (!mounted) return;
+      setState(() {
+        _isExporting = false;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    String formattedDate = DateFormat('MMMM d, yyyy').format(_selectedDate);
+    final formattedDate = DateFormat('MMMM d, yyyy').format(_selectedDate);
 
     return Scaffold(
       body: NutechBackground(
@@ -66,7 +165,6 @@ class _AdminDailyAttendanceScreenState extends State<AdminDailyAttendanceScreen>
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      // LOGO SECTION: Exact match to AdminOverviewPage
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 20),
                         child: Container(
@@ -94,19 +192,20 @@ class _AdminDailyAttendanceScreenState extends State<AdminDailyAttendanceScreen>
                               onTap: () => _selectDate(context),
                             ),
                             const SizedBox(height: 20),
-                            FutureBuilder<List<_DailyRow>>(
+                            FutureBuilder<AdminDailyAttendanceReportData>(
                               future: _attendanceData,
                               builder: (context, snapshot) {
-                                if (snapshot.connectionState == ConnectionState.waiting) {
+                                if (snapshot.connectionState ==
+                                    ConnectionState.waiting) {
                                   return const Padding(
                                     padding: EdgeInsets.only(top: 50),
-                                    child: CircularProgressIndicator(color: AppTheme.teal),
+                                    child: CircularProgressIndicator(
+                                      color: AppTheme.teal,
+                                    ),
                                   );
                                 }
 
-                                final data = snapshot.data ?? [];
-
-                                if (data.isEmpty) {
+                                if (snapshot.hasError) {
                                   return Column(
                                     children: [
                                       _buildStatsRow('0', '0', '0', '0'),
@@ -118,9 +217,68 @@ class _AdminDailyAttendanceScreenState extends State<AdminDailyAttendanceScreen>
                                           height: 200,
                                           alignment: Alignment.center,
                                           child: Text(
+                                            'Failed to load report data.',
+                                            style: TextStyle(
+                                              color:
+                                                  Colors.black.withOpacity(0.55),
+                                              fontWeight: FontWeight.w600,
+                                              fontSize: 16,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  );
+                                }
+
+                                final report = snapshot.data;
+                                if (report == null) {
+                                  return Column(
+                                    children: [
+                                      _buildStatsRow('0', '0', '0', '0'),
+                                      const SizedBox(height: 14),
+                                      _buildSectionDivider(),
+                                      const SizedBox(height: 10),
+                                      _TableCard(
+                                        child: Container(
+                                          height: 200,
+                                          alignment: Alignment.center,
+                                          child: Text(
+                                            'No records found for this period',
+                                            style: TextStyle(
+                                              color: Colors.black
+                                                  .withOpacity(0.5),
+                                              fontWeight: FontWeight.w600,
+                                              fontSize: 16,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  );
+                                }
+
+                                if (report.rows.isEmpty) {
+                                  return Column(
+                                    children: [
+                                      _buildStatsRow(
+                                        report.present.toString(),
+                                        report.late.toString(),
+                                        report.absent.toString(),
+                                        report.overtime.toString(),
+                                      ),
+                                      const SizedBox(height: 14),
+                                      _buildSectionDivider(),
+                                      const SizedBox(height: 10),
+                                      _TableCard(
+                                        child: Container(
+                                          height: 200,
+                                          alignment: Alignment.center,
+                                          child: Text(
                                             "No records found for this period",
                                             style: TextStyle(
-                                              color: Colors.black.withOpacity(0.5),
+                                              color: Colors.black
+                                                  .withOpacity(0.5),
                                               fontWeight: FontWeight.w600,
                                               fontSize: 16,
                                             ),
@@ -133,11 +291,18 @@ class _AdminDailyAttendanceScreenState extends State<AdminDailyAttendanceScreen>
 
                                 return Column(
                                   children: [
-                                    _buildStatsRow('28', '4', '2', '28'),
+                                    _buildStatsRow(
+                                      report.present.toString(),
+                                      report.late.toString(),
+                                      report.absent.toString(),
+                                      report.overtime.toString(),
+                                    ),
                                     const SizedBox(height: 14),
                                     _buildSectionDivider(),
                                     const SizedBox(height: 10),
-                                    _TableCard(child: _buildDataTable(data)),
+                                    _TableCard(
+                                      child: _buildDataTable(report.rows),
+                                    ),
                                   ],
                                 );
                               },
@@ -160,18 +325,29 @@ class _AdminDailyAttendanceScreenState extends State<AdminDailyAttendanceScreen>
   Widget _buildTitleSection() {
     return Column(
       children: [
-        Divider(color: Colors.black.withOpacity(0.15), thickness: 1, height: 1),
+        Divider(
+          color: Colors.black.withOpacity(0.15),
+          thickness: 1,
+          height: 1,
+        ),
         Container(
           width: double.infinity,
           padding: const EdgeInsets.symmetric(vertical: 12),
           child: const Center(
             child: Text(
               'Daily Attendance Report',
-              style: TextStyle(fontSize: 26, fontWeight: FontWeight.w800),
+              style: TextStyle(
+                fontSize: 26,
+                fontWeight: FontWeight.w800,
+              ),
             ),
           ),
         ),
-        Divider(color: Colors.black.withOpacity(0.15), thickness: 1, height: 1),
+        Divider(
+          color: Colors.black.withOpacity(0.15),
+          thickness: 1,
+          height: 1,
+        ),
       ],
     );
   }
@@ -179,15 +355,28 @@ class _AdminDailyAttendanceScreenState extends State<AdminDailyAttendanceScreen>
   Widget _buildSectionDivider() {
     return Row(
       children: [
-        Expanded(child: Divider(color: Colors.black.withOpacity(0.25), thickness: 1)),
+        Expanded(
+          child: Divider(
+            color: Colors.black.withOpacity(0.25),
+            thickness: 1,
+          ),
+        ),
         const Padding(
           padding: EdgeInsets.symmetric(horizontal: 10),
           child: Text(
             'Daily Report',
-            style: TextStyle(fontWeight: FontWeight.w800, color: Colors.black),
+            style: TextStyle(
+              fontWeight: FontWeight.w800,
+              color: Colors.black,
+            ),
           ),
         ),
-        Expanded(child: Divider(color: Colors.black.withOpacity(0.25), thickness: 1)),
+        Expanded(
+          child: Divider(
+            color: Colors.black.withOpacity(0.25),
+            thickness: 1,
+          ),
+        ),
       ],
     );
   }
@@ -195,25 +384,51 @@ class _AdminDailyAttendanceScreenState extends State<AdminDailyAttendanceScreen>
   Widget _buildStatsRow(String p, String l, String a, String o) {
     return Row(
       children: [
-        Expanded(child: _MiniStatCard(label: 'Present', value: p, color: AppTheme.teal)),
+        Expanded(
+          child: _MiniStatCard(
+            label: 'Present',
+            value: p,
+            color: AppTheme.teal,
+          ),
+        ),
         const SizedBox(width: 10),
-        Expanded(child: _MiniStatCard(label: 'Late', value: l, color: const Color(0xFFE74C3C))),
+        Expanded(
+          child: _MiniStatCard(
+            label: 'Late',
+            value: l,
+            color: const Color(0xFFE74C3C),
+          ),
+        ),
         const SizedBox(width: 10),
-        Expanded(child: _MiniStatCard(label: 'Absent', value: a, color: const Color(0xFFF39C12))),
+        Expanded(
+          child: _MiniStatCard(
+            label: 'Absent',
+            value: a,
+            color: const Color(0xFFF39C12),
+          ),
+        ),
         const SizedBox(width: 10),
-        Expanded(child: _MiniStatCard(label: 'Overtime', value: o, color: const Color(0xFF5DADE2))),
+        Expanded(
+          child: _MiniStatCard(
+            label: 'Overtime',
+            value: o,
+            color: const Color(0xFF5DADE2),
+          ),
+        ),
       ],
     );
   }
 
-  Widget _buildDataTable(List<_DailyRow> rows) {
+  Widget _buildDataTable(List<AdminDailyAttendanceRow> rows) {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: ConstrainedBox(
         constraints: const BoxConstraints(minWidth: 520),
         child: Table(
           defaultVerticalAlignment: TableCellVerticalAlignment.middle,
-          border: TableBorder.all(color: Colors.black.withOpacity(0.18)),
+          border: TableBorder.all(
+            color: Colors.black.withOpacity(0.18),
+          ),
           columnWidths: const {
             0: FlexColumnWidth(2.2),
             1: FlexColumnWidth(1.2),
@@ -239,13 +454,21 @@ class _AdminDailyAttendanceScreenState extends State<AdminDailyAttendanceScreen>
             child: SizedBox(
               height: 52,
               child: ElevatedButton(
-                onPressed: () {},
+                onPressed: _isExporting ? null : _exportReport,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppTheme.teal,
                   foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
                 ),
-                child: const Text('Export Report', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+                child: Text(
+                  _isExporting ? 'Exporting...' : 'Export Report',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w800,
+                    fontSize: 16,
+                  ),
+                ),
               ),
             ),
           ),
@@ -258,9 +481,17 @@ class _AdminDailyAttendanceScreenState extends State<AdminDailyAttendanceScreen>
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFFE6E7EA),
                   foregroundColor: const Color(0xFF5B5F66),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
                 ),
-                child: const Text('Back', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+                child: const Text(
+                  'Back',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w800,
+                    fontSize: 16,
+                  ),
+                ),
               ),
             ),
           ),
@@ -271,39 +502,60 @@ class _AdminDailyAttendanceScreenState extends State<AdminDailyAttendanceScreen>
 
   TableRow _headerRow() {
     return TableRow(
-      decoration: const BoxDecoration(color: Color(0xFFE7E7E7)),
-      children: ['Employee', 'Time In', 'Time Out', 'Hours', 'Status'].map((t) => 
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
-          child: Text(t, style: const TextStyle(fontWeight: FontWeight.w800)),
-        )
-      ).toList(),
+      decoration: const BoxDecoration(
+        color: Color(0xFFE7E7E7),
+      ),
+      children: ['Employee', 'Time In', 'Time Out', 'Hours', 'Status']
+          .map(
+            (t) => Padding(
+              padding: const EdgeInsets.symmetric(
+                vertical: 10,
+                horizontal: 10,
+              ),
+              child: Text(
+                t,
+                style: const TextStyle(fontWeight: FontWeight.w800),
+              ),
+            ),
+          )
+          .toList(),
     );
   }
 
-  TableRow _dataRow(_DailyRow r) {
+  TableRow _dataRow(AdminDailyAttendanceRow r) {
     return TableRow(
       children: [
         _cell(Text(r.employee)),
-        _cell(Text(r.timeIn)),
-        _cell(Text(r.timeOut)),
-        _cell(Text(r.hours)),
-        _cell(Align(alignment: Alignment.centerLeft, child: _StatusChip(status: r.status))),
+        _cell(Text(_formatTime(r.timeIn))),
+        _cell(Text(_formatTime(r.timeOut))),
+        _cell(Text(r.hours.toStringAsFixed(1))),
+        _cell(
+          Align(
+            alignment: Alignment.centerLeft,
+            child: _StatusChip(status: r.status),
+          ),
+        ),
       ],
     );
   }
 
-  Widget _cell(Widget child) => Padding(padding: const EdgeInsets.all(10), child: child);
-}
-
-class _DailyRow {
-  final String employee, timeIn, timeOut, hours, status;
-  _DailyRow(this.employee, this.timeIn, this.timeOut, this.hours, this.status);
+  Widget _cell(Widget child) {
+    return Padding(
+      padding: const EdgeInsets.all(10),
+      child: child,
+    );
+  }
 }
 
 class _FilterCard extends StatelessWidget {
-  const _FilterCard({required this.text, required this.actionText, required this.onTap});
-  final String text, actionText;
+  const _FilterCard({
+    required this.text,
+    required this.actionText,
+    required this.onTap,
+  });
+
+  final String text;
+  final String actionText;
   final VoidCallback onTap;
 
   @override
@@ -313,18 +565,43 @@ class _FilterCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.black.withOpacity(0.10)),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.10), blurRadius: 10, offset: const Offset(0, 6))],
+        border: Border.all(
+          color: Colors.black.withOpacity(0.10),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.10),
+            blurRadius: 10,
+            offset: const Offset(0, 6),
+          ),
+        ],
       ),
       child: Row(
         children: [
-          Expanded(child: Text(text, style: const TextStyle(fontWeight: FontWeight.w600))),
+          Expanded(
+            child: Text(
+              text,
+              style: const TextStyle(fontWeight: FontWeight.w600),
+            ),
+          ),
           InkWell(
             onTap: onTap,
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(color: AppTheme.tealSoft, borderRadius: BorderRadius.circular(8)),
-              child: Text(actionText, style: const TextStyle(fontWeight: FontWeight.w800, color: AppTheme.teal)),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 6,
+              ),
+              decoration: BoxDecoration(
+                color: AppTheme.tealSoft,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                actionText,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w800,
+                  color: AppTheme.teal,
+                ),
+              ),
             ),
           ),
         ],
@@ -334,8 +611,14 @@ class _FilterCard extends StatelessWidget {
 }
 
 class _MiniStatCard extends StatelessWidget {
-  const _MiniStatCard({required this.label, required this.value, required this.color});
-  final String label, value;
+  const _MiniStatCard({
+    required this.label,
+    required this.value,
+    required this.color,
+  });
+
+  final String label;
+  final String value;
   final Color color;
 
   @override
@@ -346,16 +629,36 @@ class _MiniStatCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: color,
         borderRadius: BorderRadius.circular(10),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.16), blurRadius: 10, offset: const Offset(0, 6))],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.16),
+            blurRadius: 10,
+            offset: const Offset(0, 6),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 10)),
+          Text(
+            label,
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w800,
+              fontSize: 10,
+            ),
+          ),
           const Spacer(),
           Align(
             alignment: Alignment.bottomRight,
-            child: Text(value, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 18)),
+            child: Text(
+              value,
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w900,
+                fontSize: 18,
+              ),
+            ),
           ),
         ],
       ),
@@ -365,6 +668,7 @@ class _MiniStatCard extends StatelessWidget {
 
 class _TableCard extends StatelessWidget {
   const _TableCard({required this.child});
+
   final Widget child;
 
   @override
@@ -374,8 +678,16 @@ class _TableCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.black.withOpacity(0.10)),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.10), blurRadius: 10, offset: const Offset(0, 6))],
+        border: Border.all(
+          color: Colors.black.withOpacity(0.10),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.10),
+            blurRadius: 10,
+            offset: const Offset(0, 6),
+          ),
+        ],
       ),
       child: child,
     );
@@ -384,20 +696,36 @@ class _TableCard extends StatelessWidget {
 
 class _StatusChip extends StatelessWidget {
   const _StatusChip({required this.status});
+
   final String status;
 
   @override
   Widget build(BuildContext context) {
     final s = status.toLowerCase().trim();
     Color bg = const Color(0xFF17A673);
-    if (s == 'late' || s == 'missed out') bg = const Color(0xFFE74C3C);
-    else if (s == 'absent') bg = const Color(0xFFF39C12);
-    else if (s == 'overtime') bg = const Color(0xFF5DADE2);
+
+    if (s == 'late' || s == 'missed out') {
+      bg = const Color(0xFFE74C3C);
+    } else if (s == 'absent') {
+      bg = const Color(0xFFF39C12);
+    } else if (s == 'overtime') {
+      bg = const Color(0xFF5DADE2);
+    }
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(10)),
-      child: Text(status, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 11)),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Text(
+        status,
+        style: const TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.w900,
+          fontSize: 11,
+        ),
+      ),
     );
   }
 }
