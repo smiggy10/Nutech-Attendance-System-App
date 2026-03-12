@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../../../theme/app_theme.dart';
-import '../../../services/n8n_api.dart';
 import 'pending_approvals_page.dart';
 
 class AdminOverviewPage extends StatefulWidget {
@@ -13,51 +12,6 @@ class AdminOverviewPage extends StatefulWidget {
 class _AdminOverviewPageState extends State<AdminOverviewPage> {
   final List<dynamic> _todayLogs = [];
   final List<dynamic> _allEmployees = [];
-  int _pendingApprovalsCount = 0;
-  bool _isLoadingPending = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadPendingApprovalsCount();
-  }
-
-  Future<void> _loadPendingApprovalsCount() async {
-    setState(() {
-      _isLoadingPending = true;
-    });
-
-    try {
-      final response = await N8nApi.getAdminPending();
-      if (!mounted) return;
-
-      final success = response['success'] == true;
-      final list = response['pending'];
-
-      if (success && list is List) {
-        // Filter out rejected employees
-        final filteredList = RejectedEmployeesTracker.filterRejected(
-          list.cast<Map<String, dynamic>>(),
-        );
-
-        setState(() {
-          _pendingApprovalsCount = filteredList.length;
-          _isLoadingPending = false;
-        });
-      } else {
-        setState(() {
-          _pendingApprovalsCount = 0;
-          _isLoadingPending = false;
-        });
-      }
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _pendingApprovalsCount = 0;
-        _isLoadingPending = false;
-      });
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -144,9 +98,7 @@ class _AdminOverviewPageState extends State<AdminOverviewPage> {
                 _AlertRow(
                   iconAsset: 'assets/admin/SandWatch.png',
                   title: 'Pending Approval',
-                  value: _isLoadingPending
-                      ? '...'
-                      : _pendingApprovalsCount.toString(),
+                  value: 'View',
                   badgeColor: AppTheme.teal,
                   onTap: () async {
                     await Navigator.of(context).push(
@@ -154,8 +106,6 @@ class _AdminOverviewPageState extends State<AdminOverviewPage> {
                         builder: (_) => const PendingApprovalsPage(),
                       ),
                     );
-                    // Refresh the count when returning from pending approvals page
-                    _loadPendingApprovalsCount();
                   },
                 ),
                 const SizedBox(height: 22),
