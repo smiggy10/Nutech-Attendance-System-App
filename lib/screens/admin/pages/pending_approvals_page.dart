@@ -374,7 +374,7 @@ class _PendingApprovalsPageState extends State<PendingApprovalsPage> {
     final airtableId = (item['airtableId'] ?? '').toString();
     final fullName = (item['fullName'] ?? '').toString();
     final email = (item['email'] ?? '').toString();
-    final registrationDate = (item['registrationDate'] ?? '').toString();
+    final contactNumber = (item['contactNumber'] ?? '').toString();
     final busy = _actionInProgress.contains(airtableId);
 
     return Container(
@@ -413,16 +413,27 @@ class _PendingApprovalsPageState extends State<PendingApprovalsPage> {
                         color: AppTheme.muted,
                       ),
                     ),
-                    if (registrationDate.isNotEmpty) ...[
-                      const SizedBox(height: 2),
-                      Text(
-                        'Registered: $registrationDate',
-                        style: const TextStyle(
-                          fontSize: 12,
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.phone_outlined,
+                          size: 14,
                           color: AppTheme.muted,
                         ),
-                      ),
-                    ],
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            contactNumber.isNotEmpty ? contactNumber : '—',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: AppTheme.muted,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
                   ],
                 ),
               ),
