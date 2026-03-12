@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../theme/app_theme.dart';
+import '../../../services/adminn8n.dart';
 
 class AdminMonitorPage extends StatefulWidget {
   const AdminMonitorPage({super.key});
@@ -11,29 +12,173 @@ class AdminMonitorPage extends StatefulWidget {
 class _AdminMonitorPageState extends State<AdminMonitorPage> {
   int _tab = 0; // 0 = Today, 1 = This Week
 
-  // ✅ The list starts empty. Numbers will stay at 0 until n8n fills this list.
-  List<_MonitorItem> items = [];
+  bool _isLoading = false;
+
+  int _currentlyClockedIn = 0;
+  int _clockedOutToday = 0;
+  int _missingTimeOut = 0;
+  int _overtimeDetected = 0;
+
+  List<AdminMonitorActivity> _activities = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadMonitorData();
+  }
+
+  Future<void> _loadMonitorData() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final data = await AdminN8n.getMonitorData();
+
+      if (!mounted) return;
+
+      setState(() {
+        _currentlyClockedIn = data.currentlyClockedIn;
+        _clockedOutToday = data.clockedOutToday;
+        _missingTimeOut = data.missingTimeOut;
+        _overtimeDetected = data.overtimeDetected;
+        _activities = data.recentActivities;
+        _isLoading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        _currentlyClockedIn = 0;
+        _clockedOutToday = 0;
+        _missingTimeOut = 0;
+        _overtimeDetected = 0;
+        _activities = [];
+        _isLoading = false;
+      });
+    }
+  }
+
+  String _todayString() {
+    final now = DateTime.now();
+    final year = now.year.toString().padLeft(4, '0');
+    final month = now.month.toString().padLeft(2, '0');
+    final day = now.day.toString().padLeft(2, '0');
+    return '$year-$month-$day';
+  }
+
+  DateTime? _parseDateOnly(String? value) {
+    if (value == null || value.trim().isEmpty) return null;
+
+    final parts = value.split('-');
+    if (parts.length != 3) return null;
+
+    final year = int.tryParse(parts[0]);
+    final month = int.tryParse(parts[1]);
+    final day = int.tryParse(parts[2]);
+
+    if (year == null || month == null || day == null) return null;
+
+    return DateTime(year, month, day);
+  }
+
+  bool _isToday(String? attendanceDate) {
+    return attendanceDate == _todayString();
+  }
+
+  bool _isThisWeek(String? attendanceDate) {
+    final date = _parseDateOnly(attendanceDate);
+    if (date == null) return false;
+
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+
+    final diffToMonday = today.weekday - DateTime.monday;
+    final startOfWeek = today.subtract(Duration(days: diffToMonday));
+    final endOfWeek = startOfWeek.add(const Duration(days: 7));
+
+    return !date.isBefore(startOfWeek) && date.isBefore(endOfWeek);
+  }
+
+  String _formatUtcTime(String? raw) {
+    if (raw == null || raw.trim().isEmpty) return '-';
+
+    try {
+      final dt = DateTime.parse(raw).toUtc();
+      final hour = dt.hour;
+      final minute = dt.minute;
+
+      final suffix = hour >= 12 ? 'PM' : 'AM';
+      final hour12 = hour == 0
+          ? 12
+          : hour > 12
+              ? hour - 12
+              : hour;
+
+      final mm = minute.toString().padLeft(2, '0');
+      return '$hour12:$mm $suffix';
+    } catch (_) {
+      return '-';
+    }
+  }
+
+  String _buildTimeText(AdminMonitorActivity activity) {
+    final dateText = activity.attendanceDate ?? '-';
+    final checkIn = _formatUtcTime(activity.checkInTime);
+    final checkOut = _formatUtcTime(activity.checkOutTime);
+
+    if (checkIn != '-' && checkOut != '-') {
+      return '$dateText • $checkIn - $checkOut';
+    }
+
+    if (checkIn != '-') {
+      return '$dateText • $checkIn';
+    }
+
+    return dateText;
+  }
+
+  _MonitorStatus _mapStatus(String status) {
+    final value = status.toLowerCase();
+
+    if (value.contains('missing')) {
+      return _MonitorStatus.alert;
+    }
+
+    if (value.contains('completed') || value.contains('clocked out')) {
+      return _MonitorStatus.clockedOut;
+    }
+
+    return _MonitorStatus.clockedIn;
+  }
+
+  List<_MonitorItem> get _displayItems {
+    final filtered = _activities.where((activity) {
+      if (_tab == 0) {
+        return _isToday(activity.attendanceDate);
+      }
+      return _isThisWeek(activity.attendanceDate);
+    }).toList();
+
+    return filtered.map((activity) {
+      return _MonitorItem(
+        name: activity.fullName.isNotEmpty ? activity.fullName : activity.userId,
+        site: activity.userId,
+        status: _mapStatus(activity.status),
+        timeText: _buildTimeText(activity),
+      );
+    }).toList();
+  }
 
   @override
   Widget build(BuildContext context) {
-    // These lines calculate the numbers based on what is actually in your 'items' list
-    final int clockedInCount = items
-        .where((e) => e.status == _MonitorStatus.clockedIn)
-        .length;
-    final int alertCount = items
-        .where((e) => e.status == _MonitorStatus.alert)
-        .length;
-    final int clockedOutCount = items
-        .where((e) => e.status == _MonitorStatus.clockedOut)
-        .length;
+    final items = _displayItems;
 
     return SingleChildScrollView(
-      // ✅ Removed horizontal padding to allow Dividers to hit screen edges
       padding: const EdgeInsets.symmetric(vertical: 10),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // ✅ Section 1: Logo (Re-applied horizontal padding)
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Container(
@@ -48,10 +193,7 @@ class _AdminMonitorPageState extends State<AdminMonitorPage> {
               ),
             ),
           ),
-
           const SizedBox(height: 10),
-
-          // ✅ FIXED: Continuous edge-to-edge lines for the title
           Column(
             children: [
               Divider(
@@ -80,10 +222,7 @@ class _AdminMonitorPageState extends State<AdminMonitorPage> {
               ),
             ],
           ),
-
           const SizedBox(height: 16),
-
-          // ✅ Section 2: Body Content (Re-applied horizontal padding)
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Column(
@@ -93,7 +232,7 @@ class _AdminMonitorPageState extends State<AdminMonitorPage> {
                     Expanded(
                       child: _StatCard(
                         title: 'Currently Clocked In',
-                        value: clockedInCount.toString(),
+                        value: _isLoading ? '...' : _currentlyClockedIn.toString(),
                         background: AppTheme.teal,
                       ),
                     ),
@@ -101,7 +240,7 @@ class _AdminMonitorPageState extends State<AdminMonitorPage> {
                     Expanded(
                       child: _StatCard(
                         title: 'Clocked Out Today',
-                        value: clockedOutCount.toString(),
+                        value: _isLoading ? '...' : _clockedOutToday.toString(),
                         background: const Color(0xFFFFA826),
                       ),
                     ),
@@ -113,24 +252,21 @@ class _AdminMonitorPageState extends State<AdminMonitorPage> {
                     Expanded(
                       child: _StatCard(
                         title: 'Missing Time-Out',
-                        value: alertCount.toString(),
+                        value: _isLoading ? '...' : _missingTimeOut.toString(),
                         background: const Color(0xFFE74C3C),
                       ),
                     ),
                     const SizedBox(width: 14),
-                    const Expanded(
+                    Expanded(
                       child: _StatCard(
                         title: 'Overtime Detected',
-                        value: '0',
+                        value: _isLoading ? '...' : _overtimeDetected.toString(),
                         background: AppTheme.teal,
                       ),
                     ),
                   ],
                 ),
-
                 const SizedBox(height: 20),
-
-                // Main Container for Employee Logs
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
@@ -154,9 +290,7 @@ class _AdminMonitorPageState extends State<AdminMonitorPage> {
                         index: _tab,
                         onChanged: (i) => setState(() => _tab = i),
                       ),
-
                       const SizedBox(height: 20),
-
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 4),
                         child: Text(
@@ -168,10 +302,21 @@ class _AdminMonitorPageState extends State<AdminMonitorPage> {
                           ),
                         ),
                       ),
-
                       const SizedBox(height: 12),
-
-                      if (items.isEmpty)
+                      if (_isLoading)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 40),
+                          child: Center(
+                            child: Text(
+                              "Loading logs...",
+                              style: TextStyle(
+                                color: AppTheme.ink.withOpacity(0.4),
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        )
+                      else if (items.isEmpty)
                         Padding(
                           padding: const EdgeInsets.symmetric(vertical: 40),
                           child: Center(
@@ -212,6 +357,7 @@ class _StatCard extends StatelessWidget {
     required this.value,
     required this.background,
   });
+
   final String title;
   final String value;
   final Color background;
@@ -268,6 +414,7 @@ class _Segmented extends StatelessWidget {
     required this.index,
     required this.onChanged,
   });
+
   final String left;
   final String right;
   final int index;
@@ -338,6 +485,7 @@ class _MonitorItem {
     required this.status,
     required this.timeText,
   });
+
   final String name;
   final String site;
   final _MonitorStatus status;
@@ -346,6 +494,7 @@ class _MonitorItem {
 
 class _EmployeeRow extends StatelessWidget {
   const _EmployeeRow({required this.item});
+
   final _MonitorItem item;
 
   @override
@@ -403,6 +552,7 @@ class _EmployeeRow extends StatelessWidget {
 
 class _StatusPill extends StatelessWidget {
   const _StatusPill({required this.status});
+
   final _MonitorStatus status;
 
   @override
@@ -437,7 +587,11 @@ class _StatusPill extends StatelessWidget {
       ),
       child: Text(
         text,
-        style: TextStyle(color: fg, fontWeight: FontWeight.w900, fontSize: 12),
+        style: TextStyle(
+          color: fg,
+          fontWeight: FontWeight.w900,
+          fontSize: 12,
+        ),
       ),
     );
   }

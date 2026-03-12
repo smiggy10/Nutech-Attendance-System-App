@@ -1,3 +1,4 @@
+import '../../../services/adminn8n.dart';
 import 'package:flutter/material.dart';
 import '../../../theme/app_theme.dart';
 import '../../../services/n8n_api.dart';
@@ -11,15 +12,54 @@ class AdminOverviewPage extends StatefulWidget {
 }
 
 class _AdminOverviewPageState extends State<AdminOverviewPage> {
-  final List<dynamic> _todayLogs = [];
-  final List<dynamic> _allEmployees = [];
+  int _onTimeToday = 0;
+  int _lateToday = 0;
+  int _totalEmployees = 0;
+  int _absencesThisWeek = 0;
+  double _overtimeHours = 0;
+
+  bool _isLoadingOverview = false;
+
   int _pendingApprovalsCount = 0;
   bool _isLoadingPending = false;
 
   @override
   void initState() {
     super.initState();
+    _loadOverviewStats();
     _loadPendingApprovalsCount();
+  }
+
+  Future<void> _loadOverviewStats() async {
+    setState(() {
+      _isLoadingOverview = true;
+    });
+
+    try {
+      final stats = await AdminN8n.getOverviewStats();
+
+      if (!mounted) return;
+
+      setState(() {
+        _onTimeToday = stats.onTimeToday;
+        _lateToday = stats.lateToday;
+        _totalEmployees = stats.totalEmployees;
+        _absencesThisWeek = stats.absencesThisWeek;
+        _overtimeHours = stats.overtimeHours;
+        _isLoadingOverview = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        _onTimeToday = 0;
+        _lateToday = 0;
+        _totalEmployees = 0;
+        _absencesThisWeek = 0;
+        _overtimeHours = 0;
+        _isLoadingOverview = false;
+      });
+    }
   }
 
   Future<void> _loadPendingApprovalsCount() async {
@@ -61,12 +101,6 @@ class _AdminOverviewPageState extends State<AdminOverviewPage> {
 
   @override
   Widget build(BuildContext context) {
-    final onTimeCount = _todayLogs
-        .where((l) => l['status'] == 'on-time')
-        .length;
-    final lateCount = _todayLogs.where((l) => l['status'] == 'late').length;
-    final totalEmployees = _allEmployees.length;
-
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(vertical: 10),
       child: Column(
@@ -125,7 +159,9 @@ class _AdminOverviewPageState extends State<AdminOverviewPage> {
                     Expanded(
                       child: _MiniStat(
                         title: 'On Time Today',
-                        value: onTimeCount.toString(),
+                        value: _isLoadingOverview
+                            ? '...'
+                            : _onTimeToday.toString(),
                         isDanger: false,
                       ),
                     ),
@@ -133,7 +169,9 @@ class _AdminOverviewPageState extends State<AdminOverviewPage> {
                     Expanded(
                       child: _MiniStat(
                         title: 'Late Today',
-                        value: lateCount.toString(),
+                        value: _isLoadingOverview
+                            ? '...'
+                            : _lateToday.toString(),
                         isDanger: true,
                         backgroundColor: const Color(0xFFE74C3C),
                       ),
@@ -154,7 +192,7 @@ class _AdminOverviewPageState extends State<AdminOverviewPage> {
                         builder: (_) => const PendingApprovalsPage(),
                       ),
                     );
-                    // Refresh the count when returning from pending approvals page
+
                     _loadPendingApprovalsCount();
                   },
                 ),
@@ -179,25 +217,28 @@ class _AdminOverviewPageState extends State<AdminOverviewPage> {
                     children: [
                       _DataStatusRow(
                         iconAsset: 'assets/admin/Person-A.png',
-
                         label: 'Total Employees',
-                        value: totalEmployees.toString(),
+                        value: _isLoadingOverview
+                            ? '...'
+                            : _totalEmployees.toString(),
                         valueColor: AppTheme.ink,
                       ),
                       const _DividerLine(),
-                      const _DataStatusRow(
+                      _DataStatusRow(
                         iconAsset: 'assets/admin/Attendance.png',
-
                         label: 'Absences This Week',
-                        value: '0',
+                        value: _isLoadingOverview
+                            ? '...'
+                            : _absencesThisWeek.toString(),
                         valueColor: Colors.red,
                       ),
                       const _DividerLine(),
-                      const _DataStatusRow(
+                      _DataStatusRow(
                         iconAsset: 'assets/admin/Overtime.png',
-
                         label: 'Overtime Hours',
-                        value: '0',
+                        value: _isLoadingOverview
+                            ? '...'
+                            : _overtimeHours.toStringAsFixed(2),
                         valueColor: AppTheme.ink,
                       ),
                     ],
@@ -220,6 +261,7 @@ class _MiniStat extends StatelessWidget {
     required this.isDanger,
     this.backgroundColor,
   });
+
   final String title;
   final String value;
   final bool isDanger;
@@ -229,6 +271,7 @@ class _MiniStat extends StatelessWidget {
   Widget build(BuildContext context) {
     final bg =
         backgroundColor ?? (isDanger ? const Color(0xFFE24B33) : AppTheme.teal);
+
     return Container(
       height: 78,
       padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
@@ -272,7 +315,6 @@ class _MiniStat extends StatelessWidget {
   }
 }
 
-/// Updated _AlertRow with Hover Effect
 class _AlertRow extends StatefulWidget {
   const _AlertRow({
     required this.iconAsset,
@@ -281,6 +323,7 @@ class _AlertRow extends StatefulWidget {
     required this.badgeColor,
     this.onTap,
   });
+
   final String iconAsset;
   final String title;
   final String value;
@@ -310,7 +353,6 @@ class _AlertRowState extends State<_AlertRow> {
             duration: const Duration(milliseconds: 200),
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             decoration: BoxDecoration(
-              // Slightly darken background on hover
               color: _isHovered
                   ? const Color(0xFFF5F5F5)
                   : Colors.white.withOpacity(0.9),
@@ -374,6 +416,7 @@ class _DataStatusRow extends StatelessWidget {
     required this.value,
     required this.valueColor,
   });
+
   final String iconAsset;
   final String label;
   final String value;
@@ -409,6 +452,7 @@ class _DataStatusRow extends StatelessWidget {
 
 class _DividerLine extends StatelessWidget {
   const _DividerLine();
+
   @override
   Widget build(BuildContext context) {
     return Divider(
