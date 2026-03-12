@@ -15,8 +15,10 @@ const String kN8nBaseUrl = String.fromEnvironment(
 
 /// Simple flag so we can skip calls if the URL is obviously not configured.
 bool get isN8nConfigured {
-  return !RegExp(r'YOUR-N8N|placeholder|example\.com', caseSensitive: false)
-      .hasMatch(kN8nBaseUrl);
+  return !RegExp(
+    r'YOUR-N8N|placeholder|example\.com',
+    caseSensitive: false,
+  ).hasMatch(kN8nBaseUrl);
 }
 
 /// n8n webhook paths (will be joined with [kN8nBaseUrl]).
@@ -144,10 +146,7 @@ class N8nApi {
     required String email,
     required String otp,
   }) {
-    return _postJson(N8nWebhooks.verifyOtp, {
-      'email': email,
-      'otp': otp,
-    });
+    return _postJson(N8nWebhooks.verifyOtp, {'email': email, 'otp': otp});
   }
 
   /// User login via n8n.
@@ -168,38 +167,26 @@ class N8nApi {
   }
 
   /// Resend registration OTP.
-  static Future<Map<String, dynamic>> resendOtp({
-    required String email,
-  }) {
-    return _postJson(N8nWebhooks.resendOtp, {
-      'email': email,
-    });
+  static Future<Map<String, dynamic>> resendOtp({required String email}) {
+    return _postJson(N8nWebhooks.resendOtp, {'email': email});
   }
 
   /// Forgot password: request reset code.
   static Future<Map<String, dynamic>> forgotPasswordRequest({
     required String email,
   }) {
-    return _postJson(
-      N8nWebhooks.forgotRequest,
-      {
-        'email': email,
-      },
-      throwOnNon2xx: false,
-    );
+    return _postJson(N8nWebhooks.forgotRequest, {
+      'email': email,
+    }, throwOnNon2xx: false);
   }
 
   /// Forgot password: resend reset code.
   static Future<Map<String, dynamic>> forgotPasswordResend({
     required String email,
   }) {
-    return _postJson(
-      N8nWebhooks.forgotResend,
-      {
-        'email': email,
-      },
-      throwOnNon2xx: false,
-    );
+    return _postJson(N8nWebhooks.forgotResend, {
+      'email': email,
+    }, throwOnNon2xx: false);
   }
 
   /// Forgot password: verify OTP and receive token.
@@ -207,10 +194,7 @@ class N8nApi {
     required String email,
     required String otp,
   }) {
-    return _postJson(N8nWebhooks.forgotVerify, {
-      'email': email,
-      'otp': otp,
-    });
+    return _postJson(N8nWebhooks.forgotVerify, {'email': email, 'otp': otp});
   }
 
   /// Forgot password: reset password using token.
@@ -242,16 +226,11 @@ class N8nApi {
     required String fullName,
     required String action,
   }) {
-    return _postJson(
-      N8nWebhooks.adminAction,
-      {
-        'airtableId': airtableId,
-        'email': email,
-        'fullName': fullName,
-        'action': action,
-      },
-      throwOnNon2xx: false,
-    );
+    return _postJson(N8nWebhooks.adminAction, {
+      'airtableId': airtableId,
+      'email': email,
+      'fullName': fullName,
+      'action': action,
+    }, throwOnNon2xx: false);
   }
 }
-

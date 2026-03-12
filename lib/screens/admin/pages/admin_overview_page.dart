@@ -35,8 +35,13 @@ class _AdminOverviewPageState extends State<AdminOverviewPage> {
       final list = response['pending'];
 
       if (success && list is List) {
+        // Filter out rejected employees
+        final filteredList = RejectedEmployeesTracker.filterRejected(
+          list.cast<Map<String, dynamic>>(),
+        );
+
         setState(() {
-          _pendingApprovalsCount = list.length;
+          _pendingApprovalsCount = filteredList.length;
           _isLoadingPending = false;
         });
       } else {

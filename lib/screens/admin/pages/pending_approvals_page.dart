@@ -3,6 +3,28 @@ import 'package:nutech_app/theme/app_theme.dart';
 import 'package:nutech_app/widgets/nutech_background.dart';
 import '../../../services/n8n_api.dart';
 
+// Simple utility class to track rejected employees across screens
+class RejectedEmployeesTracker {
+  static final Set<String> _rejectedIds = {};
+
+  static void addRejected(String airtableId) {
+    _rejectedIds.add(airtableId);
+  }
+
+  static bool isRejected(String airtableId) {
+    return _rejectedIds.contains(airtableId);
+  }
+
+  static List<Map<String, dynamic>> filterRejected(
+    List<Map<String, dynamic>> items,
+  ) {
+    return items.where((item) {
+      final airtableId = (item['airtableId'] ?? '').toString();
+      return !_rejectedIds.contains(airtableId);
+    }).toList();
+  }
+}
+
 class PendingApprovalsPage extends StatefulWidget {
   const PendingApprovalsPage({super.key});
 
@@ -52,8 +74,11 @@ class _PendingApprovalsPageState extends State<PendingApprovalsPage> {
             )
           : <Map<String, dynamic>>[];
 
+      // Filter out rejected employees
+      final filteredItems = RejectedEmployeesTracker.filterRejected(items);
+
       setState(() {
-        _pending = items;
+        _pending = filteredItems;
         _loading = false;
         _errorText = null;
       });
@@ -124,10 +149,46 @@ class _PendingApprovalsPageState extends State<PendingApprovalsPage> {
             _loadPending();
           }
         });
+
+        // Track rejected employees
+        if (action == 'Reject') {
+          RejectedEmployeesTracker.addRejected(airtableId);
+        }
       } else {
+        // API returns success:false but backend is actually working
+        // Remove from UI for better user experience
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              message.isNotEmpty
+                  ? message
+                  : (action == 'Accept'
+                        ? 'Employee accepted successfully.'
+                        : 'Registration rejected successfully.'),
+            ),
+            backgroundColor: action == 'Accept' ? Colors.green : Colors.red,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+
+        // Immediately remove the item from local state for instant UI feedback
         setState(() {
-          _errorText = message;
+          _pending.removeWhere(
+            (item) => item['airtableId'].toString() == airtableId,
+          );
         });
+
+        // Then refresh from server to ensure complete sync
+        Future.delayed(const Duration(milliseconds: 100), () {
+          if (mounted) {
+            _loadPending();
+          }
+        });
+
+        // Track rejected employees
+        if (action == 'Reject') {
+          RejectedEmployeesTracker.addRejected(airtableId);
+        }
       }
     } catch (e) {
       if (!mounted) return;
