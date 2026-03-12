@@ -124,15 +124,10 @@ class _AdminMonitorPageState extends State<AdminMonitorPage> {
 
   String _buildTimeText(AdminMonitorActivity activity) {
     final dateText = activity.attendanceDate ?? '-';
-    final checkIn = _formatUtcTime(activity.checkInTime);
-    final checkOut = _formatUtcTime(activity.checkOutTime);
+    final actionTime = _formatUtcTime(activity.actionTime);
 
-    if (checkIn != '-' && checkOut != '-') {
-      return '$dateText • $checkIn - $checkOut';
-    }
-
-    if (checkIn != '-') {
-      return '$dateText • $checkIn';
+    if (actionTime != '-') {
+      return '$dateText • $actionTime';
     }
 
     return dateText;
@@ -141,11 +136,11 @@ class _AdminMonitorPageState extends State<AdminMonitorPage> {
   _MonitorStatus _mapStatus(String status) {
     final value = status.toLowerCase();
 
-    if (value.contains('missing')) {
+    if (value.contains('alert')) {
       return _MonitorStatus.alert;
     }
 
-    if (value.contains('completed') || value.contains('clocked out')) {
+    if (value.contains('clocked out')) {
       return _MonitorStatus.clockedOut;
     }
 
