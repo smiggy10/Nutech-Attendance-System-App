@@ -143,13 +143,6 @@ class _PendingApprovalsPageState extends State<PendingApprovalsPage> {
           );
         });
 
-        // Then refresh from server to ensure complete sync
-        Future.delayed(const Duration(milliseconds: 100), () {
-          if (mounted) {
-            _loadPending();
-          }
-        });
-
         // Track rejected employees
         if (action == 'Reject') {
           RejectedEmployeesTracker.addRejected(airtableId);
@@ -178,13 +171,6 @@ class _PendingApprovalsPageState extends State<PendingApprovalsPage> {
           );
         });
 
-        // Then refresh from server to ensure complete sync
-        Future.delayed(const Duration(milliseconds: 100), () {
-          if (mounted) {
-            _loadPending();
-          }
-        });
-
         // Track rejected employees
         if (action == 'Reject') {
           RejectedEmployeesTracker.addRejected(airtableId);
@@ -207,6 +193,16 @@ class _PendingApprovalsPageState extends State<PendingApprovalsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        title: const Text('Pending Approvals'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: _loading ? null : _loadPending,
+            tooltip: 'Refresh',
+          ),
+        ],
+      ),
       body: NutechBackground(
         bottomAsset: 'assets/images/ui/bottombackground2.png',
         child: SafeArea(
@@ -271,12 +267,24 @@ class _PendingApprovalsPageState extends State<PendingApprovalsPage> {
                       else if (_errorText != null && _pending.isEmpty)
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 20),
-                          child: Text(
-                            _errorText!,
-                            style: const TextStyle(
-                              color: Colors.redAccent,
-                              fontSize: 14,
-                            ),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                _errorText!,
+                                style: const TextStyle(
+                                  color: Colors.redAccent,
+                                  fontSize: 14,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                              const SizedBox(height: 16),
+                              OutlinedButton.icon(
+                                onPressed: _loadPending,
+                                icon: const Icon(Icons.refresh, size: 20),
+                                label: const Text('Retry'),
+                              ),
+                            ],
                           ),
                         )
                       else if (_pending.isEmpty && _errorText == null)
