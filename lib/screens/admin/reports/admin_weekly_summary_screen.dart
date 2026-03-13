@@ -1,7 +1,13 @@
+import 'dart:io';
+
+import 'package:csv/csv.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:nutech_app/services/adminn8n.dart';
 import 'package:nutech_app/theme/app_theme.dart';
 import 'package:nutech_app/widgets/nutech_background.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 
 class AdminWeeklySummaryScreen extends StatefulWidget {
   const AdminWeeklySummaryScreen({super.key});
@@ -9,17 +15,19 @@ class AdminWeeklySummaryScreen extends StatefulWidget {
   static const route = '/admin/weekly-summary';
 
   @override
-  State<AdminWeeklySummaryScreen> createState() => _AdminWeeklySummaryScreenState();
+  State<AdminWeeklySummaryScreen> createState() =>
+      _AdminWeeklySummaryScreenState();
 }
 
 class _AdminWeeklySummaryScreenState extends State<AdminWeeklySummaryScreen> {
-  // Use DateTimeRange to store a start and end date
   DateTimeRange _selectedRange = DateTimeRange(
-    start: DateTime.now().subtract(const Duration(days: 7)),
-    end: DateTime.now(),
+    start: _startOfWeek(DateTime.now()),
+    end: _endOfWeek(DateTime.now()),
   );
-  
-  late Future<_WeeklyDataPackage?> _weeklyData;
+
+  late Future<AdminWeeklySummaryData> _weeklyData;
+  AdminWeeklySummaryData? _lastLoadedReport;
+  bool _isExporting = false;
 
   @override
   void initState() {
@@ -27,19 +35,31 @@ class _AdminWeeklySummaryScreenState extends State<AdminWeeklySummaryScreen> {
     _weeklyData = _fetchWeeklySummary();
   }
 
-  Future<_WeeklyDataPackage?> _fetchWeeklySummary() async {
-    await Future.delayed(const Duration(milliseconds: 1500));
-    // Simulated return null for "No Records" state
-    return null; 
+  static DateTime _startOfWeek(DateTime date) {
+    final day = date.weekday;
+    return DateTime(date.year, date.month, date.day)
+        .subtract(Duration(days: day - 1));
   }
 
-  // Updated to pick a range instead of a single day
+  static DateTime _endOfWeek(DateTime date) {
+    return _startOfWeek(date).add(const Duration(days: 6));
+  }
+
+  Future<AdminWeeklySummaryData> _fetchWeeklySummary() async {
+    final report = await AdminN8n.getWeeklySummary(
+      start: _selectedRange.start,
+      end: _selectedRange.end,
+    );
+    _lastLoadedReport = report;
+    return report;
+  }
+
   Future<void> _selectDateRange(BuildContext context) async {
     final DateTimeRange? picked = await showDateRangePicker(
       context: context,
       initialDateRange: _selectedRange,
       firstDate: DateTime(2020),
-      lastDate: DateTime(2030),
+      lastDate: DateTime(2035),
       builder: (context, child) => Theme(
         data: Theme.of(context).copyWith(
           colorScheme: const ColorScheme.light(
@@ -60,12 +80,70 @@ class _AdminWeeklySummaryScreenState extends State<AdminWeeklySummaryScreen> {
     }
   }
 
+  Future<void> _exportReport() async {
+    final report = _lastLoadedReport;
+
+    if (report == null || report.summaryRows.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No weekly summary available to export.'),
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      _isExporting = true;
+    });
+
+    try {
+      final csvRows = <List<dynamic>>[
+        ['Weekly Summary Report'],
+        ['Start', report.start],
+        ['End', report.end],
+        ['Total Employees', report.totalEmployees],
+        ['Present', report.presentCount],
+        ['Late', report.lateCount],
+        ['Absent', report.absentCount],
+        [],
+        ['Metric', 'Value'],
+        ...report.summaryRows.map((row) => [row.left, row.right]),
+      ];
+
+      final csvText = csv.encode(csvRows);
+      final dir = await getTemporaryDirectory();
+      final fileName = 'weekly_summary_${report.start}_to_${report.end}.csv';
+      final file = File('${dir.path}/$fileName');
+
+      await file.writeAsString(csvText);
+
+      await SharePlus.instance.share(
+        ShareParams(
+          files: [XFile(file.path)],
+          subject: 'Weekly Summary Report - ${report.start} to ${report.end}',
+          text: 'Weekly Summary Report - ${report.start} to ${report.end}',
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to export CSV: $e')),
+      );
+    } finally {
+      if (!mounted) return;
+      setState(() {
+        _isExporting = false;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    // Format the range for display: "Mar 7 - Mar 14, 2026"
     final df = DateFormat('MMM d');
     final yf = DateFormat('yyyy');
-    String rangeText = "${df.format(_selectedRange.start)} - ${df.format(_selectedRange.end)}, ${yf.format(_selectedRange.end)}";
+    final rangeText =
+        "${df.format(_selectedRange.start)} - ${df.format(_selectedRange.end)}, ${yf.format(_selectedRange.end)}";
 
     return Scaffold(
       body: NutechBackground(
@@ -79,7 +157,6 @@ class _AdminWeeklySummaryScreenState extends State<AdminWeeklySummaryScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      // MATCHED LOGO SECTION: From Overview Page
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 20),
                         child: Container(
@@ -94,13 +171,14 @@ class _AdminWeeklySummaryScreenState extends State<AdminWeeklySummaryScreen> {
                           ),
                         ),
                       ),
-                      
                       const SizedBox(height: 10),
-                      
-                      // MATCHED TITLE BAR: From Overview Page
                       Column(
                         children: [
-                          Divider(color: Colors.black.withOpacity(0.15), thickness: 1, height: 1),
+                          Divider(
+                            color: Colors.black.withOpacity(0.15),
+                            thickness: 1,
+                            height: 1,
+                          ),
                           Container(
                             width: double.infinity,
                             padding: const EdgeInsets.symmetric(vertical: 12),
@@ -108,17 +186,20 @@ class _AdminWeeklySummaryScreenState extends State<AdminWeeklySummaryScreen> {
                               child: Text(
                                 'Weekly Summary Report',
                                 style: TextStyle(
-                                  fontSize: 26, 
-                                  fontWeight: FontWeight.w800, 
-                                  color: Colors.black.withOpacity(0.8)
+                                  fontSize: 26,
+                                  fontWeight: FontWeight.w800,
+                                  color: Colors.black.withOpacity(0.8),
                                 ),
                               ),
                             ),
                           ),
-                          Divider(color: Colors.black.withOpacity(0.15), thickness: 1, height: 1),
+                          Divider(
+                            color: Colors.black.withOpacity(0.15),
+                            thickness: 1,
+                            height: 1,
+                          ),
                         ],
                       ),
-
                       const SizedBox(height: 24),
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -129,32 +210,43 @@ class _AdminWeeklySummaryScreenState extends State<AdminWeeklySummaryScreen> {
                               actionText: 'Change',
                               onTap: () => _selectDateRange(context),
                             ),
-                            const SizedBox(height: 20), 
-                            
-                            FutureBuilder<_WeeklyDataPackage?>(
+                            const SizedBox(height: 20),
+                            FutureBuilder<AdminWeeklySummaryData>(
                               future: _weeklyData,
                               builder: (context, snapshot) {
-                                if (snapshot.connectionState == ConnectionState.waiting) {
+                                if (snapshot.connectionState ==
+                                    ConnectionState.waiting) {
                                   return const Padding(
                                     padding: EdgeInsets.only(top: 120),
-                                    child: CircularProgressIndicator(color: AppTheme.teal),
+                                    child: CircularProgressIndicator(
+                                      color: AppTheme.teal,
+                                    ),
                                   );
                                 }
 
                                 if (snapshot.hasError) {
-                                  return _buildStatusMessage("Could not connect to database");
+                                  return _buildStatusMessage(
+                                    'Could not connect to database',
+                                  );
                                 }
 
                                 final dataPackage = snapshot.data;
-
-                                if (dataPackage == null || dataPackage.summaryRows.isEmpty) {
+                                if (dataPackage == null ||
+                                    dataPackage.summaryRows.isEmpty) {
                                   return Column(
                                     children: [
-                                      _buildStatsRow(total: '0', p: '0', l: '0', a: '0'),
+                                      _buildStatsRow(
+                                        total: '0',
+                                        p: '0',
+                                        l: '0',
+                                        a: '0',
+                                      ),
                                       const SizedBox(height: 14),
-                                      _buildSectionDivider('Daily Report'), 
+                                      _buildSectionDivider('Weekly Totals'),
                                       const SizedBox(height: 10),
-                                      _buildEmptyStateCard("No records found for this period"),
+                                      _buildEmptyStateCard(
+                                        'No records found for this period',
+                                      ),
                                     ],
                                   );
                                 }
@@ -162,11 +254,12 @@ class _AdminWeeklySummaryScreenState extends State<AdminWeeklySummaryScreen> {
                                 return Column(
                                   children: [
                                     _buildStatsRow(
-                                      total: dataPackage.totalEmployees,
-                                      p: dataPackage.presentCount,
-                                      l: dataPackage.lateCount,
-                                      a: dataPackage.absentCount,
-                                    ), 
+                                      total:
+                                          dataPackage.totalEmployees.toString(),
+                                      p: dataPackage.presentCount.toString(),
+                                      l: dataPackage.lateCount.toString(),
+                                      a: dataPackage.absentCount.toString(),
+                                    ),
                                     const SizedBox(height: 14),
                                     _buildSectionDivider('Weekly Totals'),
                                     const SizedBox(height: 10),
@@ -190,12 +283,10 @@ class _AdminWeeklySummaryScreenState extends State<AdminWeeklySummaryScreen> {
     );
   }
 
-  // --- UI Builders ---
-
   Widget _buildEmptyStateCard(String message) {
     return _TableCard(
       child: Container(
-        height: 240, 
+        height: 240,
         alignment: Alignment.center,
         child: Text(
           message,
@@ -217,27 +308,54 @@ class _AdminWeeklySummaryScreenState extends State<AdminWeeklySummaryScreen> {
         alignment: Alignment.center,
         child: Text(
           message,
-          style: const TextStyle(fontWeight: FontWeight.w600, color: Colors.redAccent),
+          style: const TextStyle(
+            fontWeight: FontWeight.w600,
+            color: Colors.redAccent,
+          ),
         ),
       ),
     );
   }
 
   Widget _buildStatsRow({
-    required String total, 
-    required String p, 
-    required String l, 
-    required String a
+    required String total,
+    required String p,
+    required String l,
+    required String a,
   }) {
     return Row(
       children: [
-        Expanded(child: _MiniStatCard(label: 'Total\nEmployees', value: total, color: const Color(0xFF1FA651))),
+        Expanded(
+          child: _MiniStatCard(
+            label: 'Total\nEmployees',
+            value: total,
+            color: const Color(0xFF1FA651),
+          ),
+        ),
         const SizedBox(width: 8),
-        Expanded(child: _MiniStatCard(label: 'Present', value: p, color: const Color(0xFF148A8F))),
+        Expanded(
+          child: _MiniStatCard(
+            label: 'Present',
+            value: p,
+            color: const Color(0xFF148A8F),
+          ),
+        ),
         const SizedBox(width: 8),
-        Expanded(child: _MiniStatCard(label: 'Late', value: l, color: const Color(0xFFE74C3C))),
+        Expanded(
+          child: _MiniStatCard(
+            label: 'Late',
+            value: l,
+            color: const Color(0xFFE74C3C),
+          ),
+        ),
         const SizedBox(width: 8),
-        Expanded(child: _MiniStatCard(label: 'Absent', value: a, color: const Color(0xFFF39C12))),
+        Expanded(
+          child: _MiniStatCard(
+            label: 'Absent',
+            value: a,
+            color: const Color(0xFFF39C12),
+          ),
+        ),
       ],
     );
   }
@@ -245,12 +363,25 @@ class _AdminWeeklySummaryScreenState extends State<AdminWeeklySummaryScreen> {
   Widget _buildSectionDivider(String label) {
     return Row(
       children: [
-        Expanded(child: Divider(color: Colors.black.withOpacity(0.25), thickness: 1)),
+        Expanded(
+          child: Divider(
+            color: Colors.black.withOpacity(0.25),
+            thickness: 1,
+          ),
+        ),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 10),
-          child: Text(label, style: const TextStyle(fontWeight: FontWeight.w800)),
+          child: Text(
+            label,
+            style: const TextStyle(fontWeight: FontWeight.w800),
+          ),
         ),
-        Expanded(child: Divider(color: Colors.black.withOpacity(0.25), thickness: 1)),
+        Expanded(
+          child: Divider(
+            color: Colors.black.withOpacity(0.25),
+            thickness: 1,
+          ),
+        ),
       ],
     );
   }
@@ -264,14 +395,22 @@ class _AdminWeeklySummaryScreenState extends State<AdminWeeklySummaryScreen> {
             child: SizedBox(
               height: 52,
               child: ElevatedButton(
-                onPressed: () {},
+                onPressed: _isExporting ? null : _exportReport,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppTheme.teal,
                   foregroundColor: Colors.white,
                   elevation: 8,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
                 ),
-                child: const Text('Export Report', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+                child: Text(
+                  _isExporting ? 'Exporting...' : 'Export Report',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w800,
+                    fontSize: 16,
+                  ),
+                ),
               ),
             ),
           ),
@@ -285,9 +424,17 @@ class _AdminWeeklySummaryScreenState extends State<AdminWeeklySummaryScreen> {
                   backgroundColor: const Color(0xFFE6E7EA),
                   foregroundColor: const Color(0xFF5B5F66),
                   elevation: 4,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
                 ),
-                child: const Text('Back', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+                child: const Text(
+                  'Back',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w800,
+                    fontSize: 16,
+                  ),
+                ),
               ),
             ),
           ),
@@ -297,34 +444,15 @@ class _AdminWeeklySummaryScreenState extends State<AdminWeeklySummaryScreen> {
   }
 }
 
-// --- Supporting Models ---
-
-class _WeeklyDataPackage {
-  final String totalEmployees;
-  final String presentCount;
-  final String lateCount;
-  final String absentCount;
-  final List<_TotalsRow> summaryRows;
-
-  _WeeklyDataPackage({
-    required this.totalEmployees,
-    required this.presentCount,
-    required this.lateCount,
-    required this.absentCount,
-    required this.summaryRows,
-  });
-}
-
-class _TotalsRow {
-  final String left, right;
-  const _TotalsRow(this.left, this.right);
-}
-
-// --- Reusable Components ---
-
 class _FilterCard extends StatelessWidget {
-  const _FilterCard({required this.text, required this.actionText, required this.onTap});
-  final String text, actionText;
+  const _FilterCard({
+    required this.text,
+    required this.actionText,
+    required this.onTap,
+  });
+
+  final String text;
+  final String actionText;
   final VoidCallback onTap;
 
   @override
@@ -335,18 +463,38 @@ class _FilterCard extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(10),
         border: Border.all(color: Colors.black.withOpacity(0.10)),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.10), blurRadius: 10, offset: const Offset(0, 6))],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.10),
+            blurRadius: 10,
+            offset: const Offset(0, 6),
+          ),
+        ],
       ),
       child: Row(
         children: [
-          Expanded(child: Text(text, style: const TextStyle(fontWeight: FontWeight.w500))),
+          Expanded(
+            child: Text(
+              text,
+              style: const TextStyle(fontWeight: FontWeight.w500),
+            ),
+          ),
           InkWell(
             onTap: onTap,
             borderRadius: BorderRadius.circular(8),
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(color: AppTheme.tealSoft, borderRadius: BorderRadius.circular(8)),
-              child: Text(actionText, style: const TextStyle(fontWeight: FontWeight.w800, color: AppTheme.teal)),
+              decoration: BoxDecoration(
+                color: AppTheme.tealSoft,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                actionText,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w800,
+                  color: AppTheme.teal,
+                ),
+              ),
             ),
           ),
         ],
@@ -356,8 +504,14 @@ class _FilterCard extends StatelessWidget {
 }
 
 class _MiniStatCard extends StatelessWidget {
-  const _MiniStatCard({required this.label, required this.value, required this.color});
-  final String label, value;
+  const _MiniStatCard({
+    required this.label,
+    required this.value,
+    required this.color,
+  });
+
+  final String label;
+  final String value;
   final Color color;
 
   @override
@@ -368,16 +522,37 @@ class _MiniStatCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: color,
         borderRadius: BorderRadius.circular(10),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.16), blurRadius: 10, offset: const Offset(0, 6))],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.16),
+            blurRadius: 10,
+            offset: const Offset(0, 6),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 11, height: 1.1)),
+          Text(
+            label,
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w900,
+              fontSize: 11,
+              height: 1.1,
+            ),
+          ),
           const Spacer(),
           Align(
             alignment: Alignment.bottomRight,
-            child: Text(value, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 18)),
+            child: Text(
+              value,
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w900,
+                fontSize: 18,
+              ),
+            ),
           ),
         ],
       ),
@@ -387,7 +562,8 @@ class _MiniStatCard extends StatelessWidget {
 
 class _TotalsCard extends StatelessWidget {
   const _TotalsCard({required this.rows});
-  final List<_TotalsRow> rows;
+
+  final List<AdminWeeklySummaryRow> rows;
 
   @override
   Widget build(BuildContext context) {
@@ -396,7 +572,13 @@ class _TotalsCard extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(10),
         border: Border.all(color: Colors.black.withOpacity(0.10)),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.10), blurRadius: 10, offset: const Offset(0, 6))],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.10),
+            blurRadius: 10,
+            offset: const Offset(0, 6),
+          ),
+        ],
       ),
       child: Column(
         children: [
@@ -406,11 +588,15 @@ class _TotalsCard extends StatelessWidget {
               child: Row(
                 children: [
                   Expanded(child: Text(rows[i].left)),
-                  Text(rows[i].right, style: const TextStyle(fontWeight: FontWeight.w800)),
+                  Text(
+                    rows[i].right,
+                    style: const TextStyle(fontWeight: FontWeight.w800),
+                  ),
                 ],
               ),
             ),
-            if (i != rows.length - 1) Divider(height: 1, color: Colors.black.withOpacity(0.12)),
+            if (i != rows.length - 1)
+              Divider(height: 1, color: Colors.black.withOpacity(0.12)),
           ],
         ],
       ),
@@ -420,7 +606,9 @@ class _TotalsCard extends StatelessWidget {
 
 class _TableCard extends StatelessWidget {
   const _TableCard({required this.child});
+
   final Widget child;
+
   @override
   Widget build(BuildContext context) => Container(
         width: double.infinity,
@@ -431,11 +619,12 @@ class _TableCard extends StatelessWidget {
           border: Border.all(color: Colors.black.withOpacity(0.12)),
           boxShadow: [
             BoxShadow(
-                color: Colors.black.withOpacity(0.1),
-                blurRadius: 10,
-                offset: const Offset(0, 6))
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 10,
+              offset: const Offset(0, 6),
+            ),
           ],
         ),
-        child: child, 
+        child: child,
       );
 }

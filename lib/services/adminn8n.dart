@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 
 const String kAdminN8nBaseUrl = String.fromEnvironment(
   'N8N_BASE_URL',
-  defaultValue: 'https://smiggybayhon.app.n8n.cloud',
+  defaultValue: 'https://smiggybeepboop.app.n8n.cloud',
 );
 
 bool get isAdminN8nConfigured {
@@ -219,6 +219,71 @@ class AdminDailyAttendanceReportData {
     );
   }
 }
+class AdminWeeklySummaryRow {
+  final String left;
+  final String right;
+
+  const AdminWeeklySummaryRow({
+    required this.left,
+    required this.right,
+  });
+
+  factory AdminWeeklySummaryRow.fromJson(Map<String, dynamic> json) {
+    return AdminWeeklySummaryRow(
+      left: (json['left'] ?? '').toString(),
+      right: (json['right'] ?? '').toString(),
+    );
+  }
+}
+
+class AdminWeeklySummaryData {
+  final String start;
+  final String end;
+  final int totalEmployees;
+  final int presentCount;
+  final int lateCount;
+  final int absentCount;
+  final List<AdminWeeklySummaryRow> summaryRows;
+
+  const AdminWeeklySummaryData({
+    required this.start,
+    required this.end,
+    required this.totalEmployees,
+    required this.presentCount,
+    required this.lateCount,
+    required this.absentCount,
+    required this.summaryRows,
+  });
+
+  factory AdminWeeklySummaryData.fromJson(Map<String, dynamic> json) {
+    int toInt(dynamic value) {
+      if (value is int) return value;
+      if (value is double) return value.toInt();
+      if (value is String) return int.tryParse(value) ?? 0;
+      return 0;
+    }
+
+    final rawRows = json['summaryRows'];
+    final rows = rawRows is List
+        ? rawRows
+            .whereType<Map>()
+            .map((e) => AdminWeeklySummaryRow.fromJson(
+                  Map<String, dynamic>.from(e),
+                ))
+            .toList()
+        : <AdminWeeklySummaryRow>[];
+
+    return AdminWeeklySummaryData(
+      start: (json['start'] ?? '').toString(),
+      end: (json['end'] ?? '').toString(),
+      totalEmployees: toInt(json['totalEmployees']),
+      presentCount: toInt(json['presentCount']),
+      lateCount: toInt(json['lateCount']),
+      absentCount: toInt(json['absentCount']),
+      summaryRows: rows,
+    );
+  }
+}
 
 class AdminN8n {
   static Uri _buildUri(String path) {
@@ -231,7 +296,56 @@ class AdminN8n {
     final day = date.day.toString().padLeft(2, '0');
     return '$year-$month-$day';
   }
+  
+  static Future<AdminWeeklySummaryData> getWeeklySummary({
+    required DateTime start,
+    required DateTime end,
+  }) async {
+    if (!isAdminN8nConfigured) {
+      throw Exception(
+        'n8n base URL is not configured. Please set N8N_BASE_URL.',
+      );
+    }
 
+    final startStr = _formatDateOnly(start);
+    final endStr = _formatDateOnly(end);
+
+    final response = await http.get(
+      _buildUri('/webhook/admin/weekly-summary?start=$startStr&end=$endStr'),
+    );
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw Exception(
+        'Admin weekly summary request failed (${response.statusCode}): ${response.body}',
+      );
+    }
+
+    if (response.body.isEmpty) {
+      return AdminWeeklySummaryData(
+        start: startStr,
+        end: endStr,
+        totalEmployees: 0,
+        presentCount: 0,
+        lateCount: 0,
+        absentCount: 0,
+        summaryRows: const [],
+      );
+    }
+
+    final decoded = jsonDecode(response.body);
+
+    if (decoded is Map<String, dynamic>) {
+      final data = decoded['data'];
+
+      if (data is Map<String, dynamic>) {
+        return AdminWeeklySummaryData.fromJson(data);
+      }
+
+      return AdminWeeklySummaryData.fromJson(decoded);
+    }
+
+    throw Exception('Invalid admin weekly summary response format.');
+  }
   static Future<AdminOverviewStats> getOverviewStats() async {
     if (!isAdminN8nConfigured) {
       throw Exception(

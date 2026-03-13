@@ -10,7 +10,7 @@ import 'package:http/http.dart' as http;
 /// You can still override this via the N8N_BASE_URL Dart define when needed.
 const String kN8nBaseUrl = String.fromEnvironment(
   'N8N_BASE_URL',
-  defaultValue: 'https://bernard100.app.n8n.cloud',
+  defaultValue: 'https://smiggybeepboop.app.n8n.cloud',
 );
 
 /// Simple flag so we can skip calls if the URL is obviously not configured.
