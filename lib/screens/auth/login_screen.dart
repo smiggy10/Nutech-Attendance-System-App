@@ -50,7 +50,7 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     try {
-      if (userId.toLowerCase() == 'admin' && password == 'admin') {
+      if (userId.toLowerCase() == '1' && password == '1') {
         if (!mounted) return;
 
         ScaffoldMessenger.of(context).showSnackBar(

@@ -285,6 +285,73 @@ class AdminWeeklySummaryData {
   }
 }
 
+class AdminLateAbsenceRow {
+  final String employee;
+  final int late;
+  final int absent;
+
+  const AdminLateAbsenceRow({
+    required this.employee,
+    required this.late,
+    required this.absent,
+  });
+
+  factory AdminLateAbsenceRow.fromJson(Map<String, dynamic> json) {
+    int toInt(dynamic value) {
+      if (value is int) return value;
+      if (value is double) return value.toInt();
+      if (value is String) return int.tryParse(value) ?? 0;
+      return 0;
+    }
+
+    return AdminLateAbsenceRow(
+      employee: (json['employee'] ?? '').toString(),
+      late: toInt(json['late']),
+      absent: toInt(json['absent']),
+    );
+  }
+}
+
+class AdminLateAbsencesData {
+  final String date;
+  final int totalLate;
+  final int totalAbsent;
+  final List<AdminLateAbsenceRow> rows;
+
+  const AdminLateAbsencesData({
+    required this.date,
+    required this.totalLate,
+    required this.totalAbsent,
+    required this.rows,
+  });
+
+  factory AdminLateAbsencesData.fromJson(Map<String, dynamic> json) {
+    int toInt(dynamic value) {
+      if (value is int) return value;
+      if (value is double) return value.toInt();
+      if (value is String) return int.tryParse(value) ?? 0;
+      return 0;
+    }
+
+    final rawRows = json['rows'];
+    final rows = rawRows is List
+        ? rawRows
+            .whereType<Map>()
+            .map((e) => AdminLateAbsenceRow.fromJson(
+                  Map<String, dynamic>.from(e),
+                ))
+            .toList()
+        : <AdminLateAbsenceRow>[];
+
+    return AdminLateAbsencesData(
+      date: (json['date'] ?? '').toString(),
+      totalLate: toInt(json['totalLate']),
+      totalAbsent: toInt(json['totalAbsent']),
+      rows: rows,
+    );
+  }
+}
+
 class AdminN8n {
   static Uri _buildUri(String path) {
     return Uri.parse(kAdminN8nBaseUrl + path);
@@ -297,6 +364,50 @@ class AdminN8n {
     return '$year-$month-$day';
   }
   
+  static Future<AdminLateAbsencesData> getLateAbsencesReport({
+    required DateTime date,
+  }) async {
+    if (!isAdminN8nConfigured) {
+      throw Exception(
+        'n8n base URL is not configured. Please set N8N_BASE_URL.',
+      );
+    }
+
+    final dateStr = _formatDateOnly(date);
+    final response = await http.get(
+      _buildUri('/webhook/admin/late-absences?date=$dateStr'),
+    );
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw Exception(
+        'Admin late & absences request failed (${response.statusCode}): ${response.body}',
+      );
+    }
+
+    if (response.body.isEmpty) {
+      return AdminLateAbsencesData(
+        date: dateStr,
+        totalLate: 0,
+        totalAbsent: 0,
+        rows: const [],
+      );
+    }
+
+    final decoded = jsonDecode(response.body);
+
+    if (decoded is Map<String, dynamic>) {
+      final data = decoded['data'];
+
+      if (data is Map<String, dynamic>) {
+        return AdminLateAbsencesData.fromJson(data);
+      }
+
+      return AdminLateAbsencesData.fromJson(decoded);
+    }
+
+    throw Exception('Invalid admin late & absences response format.');
+  }
+
   static Future<AdminWeeklySummaryData> getWeeklySummary({
     required DateTime start,
     required DateTime end,
