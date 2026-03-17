@@ -22,9 +22,43 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
   bool _isVerifying = false;
   bool _isResending = false;
   int _secondsRemaining = 0;
+  Timer? _countdownTimer;
+  bool _isResendPressed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _startCountdown(60);
+  }
+
+  void _startCountdown(int seconds) {
+    _countdownTimer?.cancel();
+    setState(() {
+      _secondsRemaining = seconds;
+    });
+
+    _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+
+      if (_secondsRemaining <= 1) {
+        setState(() {
+          _secondsRemaining = 0;
+        });
+        timer.cancel();
+      } else {
+        setState(() {
+          _secondsRemaining -= 1;
+        });
+      }
+    });
+  }
 
   Future<void> _handleVerify() async {
-    final args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
+    final args =
+        ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
 
     if (_enteredCode.length < 4) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -40,13 +74,11 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
     });
 
     try {
-      final response = await N8nApi.verifyOtp(
-        email: email,
-        otp: _enteredCode,
-      );
+      final response = await N8nApi.verifyOtp(email: email, otp: _enteredCode);
 
       final success = response['success'] == true || response.isEmpty;
-      final message = response['message']?.toString() ??
+      final message =
+          response['message']?.toString() ??
           'Account Verified! Please login to continue.';
 
       if (!mounted) return;
@@ -62,11 +94,7 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
         return;
       }
 
-      Navigator.pushNamedAndRemoveUntil(
-        context,
-        '/login',
-        (route) => false,
-      );
+      Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -85,7 +113,8 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
   }
 
   Future<void> _handleResend() async {
-    final args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
+    final args =
+        ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
     final email = (args['email'] ?? '').toString();
 
     if (_secondsRemaining > 0 || _isResending) return;
@@ -97,7 +126,8 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
     try {
       final response = await N8nApi.resendOtp(email: email);
       final success = response['success'] == true || response.isEmpty;
-      final message = response['message']?.toString() ??
+      final message =
+          response['message']?.toString() ??
           'A new code has been sent to your email.';
 
       if (!mounted) return;
@@ -113,26 +143,7 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
         return;
       }
 
-      setState(() {
-        _secondsRemaining = 60;
-      });
-
-      Timer.periodic(const Duration(seconds: 1), (timer) {
-        if (!mounted) {
-          timer.cancel();
-          return;
-        }
-        if (_secondsRemaining <= 1) {
-          setState(() {
-            _secondsRemaining = 0;
-          });
-          timer.cancel();
-        } else {
-          setState(() {
-            _secondsRemaining -= 1;
-          });
-        }
-      });
+      _startCountdown(60);
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -148,6 +159,23 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
         });
       }
     }
+  }
+
+  Future<void> _onResendTap() async {
+    final isEnabled = _secondsRemaining == 0 && !_isResending;
+    if (!isEnabled) return;
+
+    setState(() => _isResendPressed = true);
+    await Future.delayed(const Duration(milliseconds: 110));
+    if (mounted) setState(() => _isResendPressed = false);
+
+    await _handleResend();
+  }
+
+  @override
+  void dispose() {
+    _countdownTimer?.cancel();
+    super.dispose();
   }
 
   @override
@@ -169,10 +197,7 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
               const Text(
                 'Verification',
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w800,
-                ),
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
               ),
 
               const SizedBox(height: 34),
@@ -192,7 +217,7 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
                   setState(() {
                     _enteredCode = value;
                   });
-                  debugPrint('Typing OTP: $_enteredCode'); 
+                  debugPrint('Typing OTP: $_enteredCode');
                 },
               ),
 
@@ -205,12 +230,17 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
                   GestureDetector(
                     onTap: (_secondsRemaining > 0 || _isResending)
                         ? null
-                        : _handleResend,
-                    child: const Text(
-                      'Resend',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w800,
-                        decoration: TextDecoration.underline,
+                        : _onResendTap,
+                    child: AnimatedScale(
+                      scale: _isResendPressed ? 0.96 : 1.0,
+                      duration: const Duration(milliseconds: 110),
+                      curve: Curves.easeOut,
+                      child: const Text(
+                        'Resend',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w800,
+                          decoration: TextDecoration.underline,
+                        ),
                       ),
                     ),
                   ),

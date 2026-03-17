@@ -112,8 +112,8 @@ class _AdminMonitorPageState extends State<AdminMonitorPage> {
       final hour12 = hour == 0
           ? 12
           : hour > 12
-              ? hour - 12
-              : hour;
+          ? hour - 12
+          : hour;
 
       final mm = minute.toString().padLeft(2, '0');
       return '$hour12:$mm $suffix';
@@ -157,7 +157,9 @@ class _AdminMonitorPageState extends State<AdminMonitorPage> {
 
     return filtered.map((activity) {
       return _MonitorItem(
-        name: activity.fullName.isNotEmpty ? activity.fullName : activity.userId,
+        name: activity.fullName.isNotEmpty
+            ? activity.fullName
+            : activity.userId,
         site: activity.userId,
         status: _mapStatus(activity.status),
         timeText: _buildTimeText(activity),
@@ -227,7 +229,9 @@ class _AdminMonitorPageState extends State<AdminMonitorPage> {
                     Expanded(
                       child: _StatCard(
                         title: 'Currently Clocked In',
-                        value: _isLoading ? '...' : _currentlyClockedIn.toString(),
+                        value: _isLoading
+                            ? '...'
+                            : _currentlyClockedIn.toString(),
                         background: AppTheme.teal,
                       ),
                     ),
@@ -255,7 +259,9 @@ class _AdminMonitorPageState extends State<AdminMonitorPage> {
                     Expanded(
                       child: _StatCard(
                         title: 'Overtime Detected',
-                        value: _isLoading ? '...' : _overtimeDetected.toString(),
+                        value: _isLoading
+                            ? '...'
+                            : _overtimeDetected.toString(),
                         background: AppTheme.teal,
                       ),
                     ),
@@ -582,11 +588,7 @@ class _StatusPill extends StatelessWidget {
       ),
       child: Text(
         text,
-        style: TextStyle(
-          color: fg,
-          fontWeight: FontWeight.w900,
-          fontSize: 12,
-        ),
+        style: TextStyle(color: fg, fontWeight: FontWeight.w900, fontSize: 12),
       ),
     );
   }
