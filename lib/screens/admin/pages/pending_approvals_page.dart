@@ -74,7 +74,6 @@ class _PendingApprovalsPageState extends State<PendingApprovalsPage> {
             )
           : <Map<String, dynamic>>[];
 
-      // Filter out rejected employees
       final filteredItems = RejectedEmployeesTracker.filterRejected(items);
 
       setState(() {
@@ -103,6 +102,9 @@ class _PendingApprovalsPageState extends State<PendingApprovalsPage> {
       return;
     }
 
+    // Check if ANY action is already in progress to prevent simultaneous hits
+    if (_actionInProgress.isNotEmpty) return;
+
     setState(() {
       _actionInProgress.add(airtableId);
       _errorText = null;
@@ -121,60 +123,29 @@ class _PendingApprovalsPageState extends State<PendingApprovalsPage> {
       final success = response['success'] == true;
       final message = response['message']?.toString() ?? '';
 
-      if (success) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              message.isNotEmpty
-                  ? message
-                  : (action == 'Accept'
-                        ? 'Employee has been accepted and notified.'
-                        : 'Registration rejected.'),
-            ),
-            backgroundColor: action == 'Accept' ? Colors.green : Colors.red,
-            duration: const Duration(seconds: 2),
+      // UI Feedback for Success
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            message.isNotEmpty
+                ? message
+                : (action == 'Accept'
+                    ? 'Employee accepted successfully.'
+                    : 'Registration rejected successfully.'),
           ),
+          backgroundColor: action == 'Accept' ? Colors.green : Colors.red,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+
+      setState(() {
+        _pending.removeWhere(
+          (item) => item['airtableId'].toString() == airtableId,
         );
+      });
 
-        // Immediately remove the item from local state for instant UI feedback
-        setState(() {
-          _pending.removeWhere(
-            (item) => item['airtableId'].toString() == airtableId,
-          );
-        });
-
-        // Track rejected employees
-        if (action == 'Reject') {
-          RejectedEmployeesTracker.addRejected(airtableId);
-        }
-      } else {
-        // API returns success:false but backend is actually working
-        // Remove from UI for better user experience
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              message.isNotEmpty
-                  ? message
-                  : (action == 'Accept'
-                        ? 'Employee accepted successfully.'
-                        : 'Registration rejected successfully.'),
-            ),
-            backgroundColor: action == 'Accept' ? Colors.green : Colors.red,
-            duration: const Duration(seconds: 2),
-          ),
-        );
-
-        // Immediately remove the item from local state for instant UI feedback
-        setState(() {
-          _pending.removeWhere(
-            (item) => item['airtableId'].toString() == airtableId,
-          );
-        });
-
-        // Track rejected employees
-        if (action == 'Reject') {
-          RejectedEmployeesTracker.addRejected(airtableId);
-        }
+      if (action == 'Reject') {
+        RejectedEmployeesTracker.addRejected(airtableId);
       }
     } catch (e) {
       if (!mounted) return;
@@ -184,7 +155,7 @@ class _PendingApprovalsPageState extends State<PendingApprovalsPage> {
     } finally {
       if (mounted) {
         setState(() {
-          _actionInProgress.remove(airtableId);
+          _actionInProgress.clear(); // Clear all to re-enable everything
         });
       }
     }
@@ -198,7 +169,7 @@ class _PendingApprovalsPageState extends State<PendingApprovalsPage> {
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
-            onPressed: _loading ? null : _loadPending,
+            onPressed: (_loading || _actionInProgress.isNotEmpty) ? null : _loadPending,
             tooltip: 'Refresh',
           ),
         ],
@@ -231,11 +202,7 @@ class _PendingApprovalsPageState extends State<PendingApprovalsPage> {
                       const SizedBox(height: 10),
                       Column(
                         children: [
-                          Divider(
-                            color: Colors.black.withOpacity(0.15),
-                            thickness: 1,
-                            height: 1,
-                          ),
+                          Divider(color: Colors.black.withOpacity(0.15), thickness: 1, height: 1),
                           Container(
                             width: double.infinity,
                             padding: const EdgeInsets.symmetric(vertical: 12),
@@ -250,15 +217,10 @@ class _PendingApprovalsPageState extends State<PendingApprovalsPage> {
                               ),
                             ),
                           ),
-                          Divider(
-                            color: Colors.black.withOpacity(0.15),
-                            thickness: 1,
-                            height: 1,
-                          ),
+                          Divider(color: Colors.black.withOpacity(0.15), thickness: 1, height: 1),
                         ],
                       ),
                       const SizedBox(height: 20),
-
                       if (_loading)
                         const Padding(
                           padding: EdgeInsets.symmetric(vertical: 40),
@@ -270,14 +232,9 @@ class _PendingApprovalsPageState extends State<PendingApprovalsPage> {
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Text(
-                                _errorText!,
-                                style: const TextStyle(
-                                  color: Colors.redAccent,
-                                  fontSize: 14,
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
+                              Text(_errorText!,
+                                  style: const TextStyle(color: Colors.redAccent, fontSize: 14),
+                                  textAlign: TextAlign.center),
                               const SizedBox(height: 16),
                               OutlinedButton.icon(
                                 onPressed: _loadPending,
@@ -293,10 +250,7 @@ class _PendingApprovalsPageState extends State<PendingApprovalsPage> {
                           child: Center(
                             child: Text(
                               'No pending registrations',
-                              style: TextStyle(
-                                fontSize: 16,
-                                color: AppTheme.muted,
-                              ),
+                              style: TextStyle(fontSize: 16, color: AppTheme.muted),
                             ),
                           ),
                         )
@@ -308,31 +262,20 @@ class _PendingApprovalsPageState extends State<PendingApprovalsPage> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 if (_errorText != null) ...[
-                                  Text(
-                                    _errorText!,
-                                    style: const TextStyle(
-                                      color: Colors.redAccent,
-                                      fontSize: 12,
-                                    ),
-                                  ),
+                                  Text(_errorText!,
+                                      style: const TextStyle(color: Colors.redAccent, fontSize: 12)),
                                   const SizedBox(height: 10),
                                 ],
                                 const Padding(
                                   padding: EdgeInsets.only(left: 4, bottom: 10),
-                                  child: Text(
-                                    'Employees',
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.w800,
-                                      fontSize: 16,
-                                    ),
-                                  ),
+                                  child: Text('Employees',
+                                      style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
                                 ),
                                 ListView.separated(
                                   shrinkWrap: true,
                                   physics: const NeverScrollableScrollPhysics(),
                                   itemCount: _pending.length,
-                                  separatorBuilder: (_, __) =>
-                                      const SizedBox(height: 8),
+                                  separatorBuilder: (_, __) => const SizedBox(height: 8),
                                   itemBuilder: (context, index) {
                                     final item = _pending[index];
                                     return _buildEmployeeRow(item);
@@ -352,22 +295,15 @@ class _PendingApprovalsPageState extends State<PendingApprovalsPage> {
                   height: 52,
                   width: double.infinity,
                   child: ElevatedButton(
-                    onPressed: () => Navigator.pop(context),
+                    onPressed: _actionInProgress.isNotEmpty ? null : () => Navigator.pop(context),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFFE6E7EA),
                       foregroundColor: const Color(0xFF5B5F66),
                       elevation: 4,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                     ),
-                    child: const Text(
-                      'Back',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w800,
-                        fontSize: 16,
-                      ),
-                    ),
+                    child: const Text('Back',
+                        style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
                   ),
                 ),
               ),
@@ -383,7 +319,12 @@ class _PendingApprovalsPageState extends State<PendingApprovalsPage> {
     final fullName = (item['fullName'] ?? '').toString();
     final email = (item['email'] ?? '').toString();
     final contactNumber = (item['contactNumber'] ?? '').toString();
-    final busy = _actionInProgress.contains(airtableId);
+
+    // Logic: Is THIS specific row being processed?
+    final isProcessingThisRow = _actionInProgress.contains(airtableId);
+    
+    // Logic: Is ANY action happening on the page?
+    final isAnyActionInProgress = _actionInProgress.isNotEmpty;
 
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
@@ -396,47 +337,29 @@ class _PendingApprovalsPageState extends State<PendingApprovalsPage> {
         children: [
           Row(
             children: [
-              CircleAvatar(
+              const CircleAvatar(
                 radius: 20,
-                backgroundColor: const Color(0xFF5B5F66),
-                child: const Icon(Icons.person, color: Colors.white, size: 22),
+                backgroundColor: Color(0xFF5B5F66),
+                child: Icon(Icons.person, color: Colors.white, size: 22),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      fullName,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
+                    Text(fullName,
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
                     const SizedBox(height: 2),
-                    Text(
-                      email,
-                      style: const TextStyle(
-                        fontSize: 13,
-                        color: AppTheme.muted,
-                      ),
-                    ),
+                    Text(email, style: const TextStyle(fontSize: 13, color: AppTheme.muted)),
                     const SizedBox(height: 4),
                     Row(
                       children: [
-                        const Icon(
-                          Icons.phone_outlined,
-                          size: 14,
-                          color: AppTheme.muted,
-                        ),
+                        const Icon(Icons.phone_outlined, size: 14, color: AppTheme.muted),
                         const SizedBox(width: 6),
                         Expanded(
                           child: Text(
                             contactNumber.isNotEmpty ? contactNumber : '—',
-                            style: const TextStyle(
-                              fontSize: 12,
-                              color: AppTheme.muted,
-                            ),
+                            style: const TextStyle(fontSize: 12, color: AppTheme.muted),
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
@@ -459,36 +382,24 @@ class _PendingApprovalsPageState extends State<PendingApprovalsPage> {
                       foregroundColor: Colors.white,
                       disabledBackgroundColor: AppTheme.muted.withOpacity(0.5),
                       padding: const EdgeInsets.symmetric(vertical: 8),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                     ),
-                    onPressed: busy
-                        ? null
-                        : () => _handleAction(item, 'Accept'),
-                    child: busy
+                    // If anything is processing, disable THIS button
+                    onPressed: isAnyActionInProgress ? null : () => _handleAction(item, 'Accept'),
+                    child: isProcessingThisRow
                         ? const SizedBox(
                             width: 20,
                             height: 20,
                             child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.white,
-                            ),
+                                strokeWidth: 2, color: Colors.white),
                           )
                         : const Row(
                             mainAxisAlignment: MainAxisAlignment.center,
-                            mainAxisSize: MainAxisSize.min,
                             children: [
                               Icon(Icons.check, size: 20, color: Colors.white),
                               SizedBox(width: 6),
-                              Text(
-                                'Accept',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w700,
-                                  color: Colors.white,
-                                ),
-                              ),
+                              Text('Accept',
+                                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700)),
                             ],
                           ),
                   ),
@@ -504,29 +415,26 @@ class _PendingApprovalsPageState extends State<PendingApprovalsPage> {
                       foregroundColor: Colors.white,
                       disabledBackgroundColor: AppTheme.muted.withOpacity(0.5),
                       padding: const EdgeInsets.symmetric(vertical: 8),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                     ),
-                    onPressed: busy
-                        ? null
-                        : () => _handleAction(item, 'Reject'),
-                    child: const Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.close, size: 20, color: Colors.white),
-                        SizedBox(width: 6),
-                        Text(
-                          'Reject',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w700,
-                            color: Colors.white,
+                    // If anything is processing, disable THIS button
+                    onPressed: isAnyActionInProgress ? null : () => _handleAction(item, 'Reject'),
+                    child: isProcessingThisRow
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                                strokeWidth: 2, color: Colors.white),
+                          )
+                        : const Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.close, size: 20, color: Colors.white),
+                              SizedBox(width: 6),
+                              Text('Reject',
+                                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700)),
+                            ],
                           ),
-                        ),
-                      ],
-                    ),
                   ),
                 ),
               ),
