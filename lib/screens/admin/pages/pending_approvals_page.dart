@@ -102,7 +102,6 @@ class _PendingApprovalsPageState extends State<PendingApprovalsPage> {
       return;
     }
 
-    // Check if ANY action is already in progress to prevent simultaneous hits
     if (_actionInProgress.isNotEmpty) return;
 
     setState(() {
@@ -123,7 +122,6 @@ class _PendingApprovalsPageState extends State<PendingApprovalsPage> {
       final success = response['success'] == true;
       final message = response['message']?.toString() ?? '';
 
-      // UI Feedback for Success
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
@@ -155,7 +153,7 @@ class _PendingApprovalsPageState extends State<PendingApprovalsPage> {
     } finally {
       if (mounted) {
         setState(() {
-          _actionInProgress.clear(); // Clear all to re-enable everything
+          _actionInProgress.clear();
         });
       }
     }
@@ -164,16 +162,7 @@ class _PendingApprovalsPageState extends State<PendingApprovalsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Pending Approvals'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: (_loading || _actionInProgress.isNotEmpty) ? null : _loadPending,
-            tooltip: 'Refresh',
-          ),
-        ],
-      ),
+      // Removed AppBar completely to remove top navigation bar
       body: NutechBackground(
         bottomAsset: 'assets/images/ui/bottombackground2.png',
         child: SafeArea(
@@ -181,46 +170,31 @@ class _PendingApprovalsPageState extends State<PendingApprovalsPage> {
             children: [
               Expanded(
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  padding: const EdgeInsets.symmetric(vertical: 0),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
+                      // Branding Header - Logo now acts as the refresh trigger
                       Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 20),
-                        child: Container(
-                          margin: const EdgeInsets.only(bottom: 10),
-                          alignment: Alignment.center,
-                          child: ConstrainedBox(
-                            constraints: const BoxConstraints(maxHeight: 100),
-                            child: Image.asset(
-                              'assets/images/branding/nutechlogo1.png',
-                              fit: BoxFit.contain,
+                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+                        child: GestureDetector(
+                          onTap: (_loading || _actionInProgress.isNotEmpty) ? null : _loadPending,
+                          child: Container(
+                            alignment: Alignment.center,
+                            child: ConstrainedBox(
+                              constraints: const BoxConstraints(maxHeight: 100),
+                              child: Image.asset(
+                                'assets/images/branding/nutechlogo1.png',
+                                fit: BoxFit.contain,
+                              ),
                             ),
                           ),
                         ),
                       ),
+                      
+                      // Removed the "Pending Approvals" Text and Dividers section here
+                      
                       const SizedBox(height: 10),
-                      Column(
-                        children: [
-                          Divider(color: Colors.black.withOpacity(0.15), thickness: 1, height: 1),
-                          Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            child: Center(
-                              child: Text(
-                                'Pending Approvals',
-                                style: TextStyle(
-                                  fontSize: 26,
-                                  fontWeight: FontWeight.w800,
-                                  color: Colors.black.withOpacity(0.8),
-                                ),
-                              ),
-                            ),
-                          ),
-                          Divider(color: Colors.black.withOpacity(0.15), thickness: 1, height: 1),
-                        ],
-                      ),
-                      const SizedBox(height: 20),
                       if (_loading)
                         const Padding(
                           padding: EdgeInsets.symmetric(vertical: 40),
@@ -289,8 +263,10 @@ class _PendingApprovalsPageState extends State<PendingApprovalsPage> {
                   ),
                 ),
               ),
+              
+              // Bottom Action Button (Back)
               Padding(
-                padding: const EdgeInsets.fromLTRB(20, 0, 20, 18),
+                padding: const EdgeInsets.fromLTRB(20, 10, 20, 18),
                 child: SizedBox(
                   height: 52,
                   width: double.infinity,
@@ -320,15 +296,13 @@ class _PendingApprovalsPageState extends State<PendingApprovalsPage> {
     final email = (item['email'] ?? '').toString();
     final contactNumber = (item['contactNumber'] ?? '').toString();
 
-    // Logic: Is THIS specific row being processed?
     final isProcessingThisRow = _actionInProgress.contains(airtableId);
-    
-    // Logic: Is ANY action happening on the page?
     final isAnyActionInProgress = _actionInProgress.isNotEmpty;
 
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
       decoration: BoxDecoration(
+        color: Colors.white,
         borderRadius: BorderRadius.circular(8),
         border: Border.all(color: Colors.black.withOpacity(0.08)),
       ),
@@ -384,7 +358,6 @@ class _PendingApprovalsPageState extends State<PendingApprovalsPage> {
                       padding: const EdgeInsets.symmetric(vertical: 8),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                     ),
-                    // If anything is processing, disable THIS button
                     onPressed: isAnyActionInProgress ? null : () => _handleAction(item, 'Accept'),
                     child: isProcessingThisRow
                         ? const SizedBox(
@@ -417,7 +390,6 @@ class _PendingApprovalsPageState extends State<PendingApprovalsPage> {
                       padding: const EdgeInsets.symmetric(vertical: 8),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                     ),
-                    // If anything is processing, disable THIS button
                     onPressed: isAnyActionInProgress ? null : () => _handleAction(item, 'Reject'),
                     child: isProcessingThisRow
                         ? const SizedBox(
