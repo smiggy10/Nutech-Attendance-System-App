@@ -15,25 +15,81 @@ class LogsSpecificPage extends StatelessWidget {
   final DateTime date;
   final List<AttendanceLogEntry> entries;
 
-  Color _statusColorFromEntries(List<AttendanceLogEntry> items) {
-    final statuses = items.map((e) => e.status.toLowerCase()).toList();
-
-    if (statuses.any((s) => s.contains('absent'))) {
-      return Colors.redAccent;
+  /// Logic helper to check time thresholds
+  bool _isAfterTime(String timeStr, int hour, int minute) {
+    if (timeStr.isEmpty) return false;
+    try {
+      final DateFormat format = DateFormat("hh:mm a");
+      final DateTime time = format.parse(timeStr);
+      if (time.hour > hour) return true;
+      if (time.hour == hour && time.minute > minute) return true;
+      return false;
+    } catch (e) {
+      return false;
     }
-    if (statuses.any((s) => s.contains('late'))) {
-      return Colors.orange;
-    }
-    if (statuses.any((s) => s.contains('incomplete'))) {
-      return Colors.deepPurple;
-    }
-    return AppTheme.teal;
   }
 
-  String _prettyStatus(String status) {
-    if (status.trim().isEmpty) return 'Present';
-    final lower = status.toLowerCase();
-    return lower[0].toUpperCase() + lower.substring(1);
+  /// Calculates hours from an entry for status logic
+  double _calculateHours(AttendanceLogEntry entry) {
+    if (entry.clockIn.isEmpty || entry.clockOut.isEmpty) return 0.0;
+    try {
+      final DateFormat format = DateFormat("hh:mm a");
+      final DateTime inTime = format.parse(entry.clockIn);
+      final DateTime outTime = format.parse(entry.clockOut);
+      return outTime.difference(inTime).inMinutes / 60.0;
+    } catch (e) {
+      return 0.0;
+    }
+  }
+
+  Color _statusColorFromEntries(List<AttendanceLogEntry> items) {
+    if (items.isEmpty) return Colors.transparent;
+    final lastEntry = items.last;
+    final now = DateTime.now();
+    bool isPast5PM = now.hour >= 17;
+    bool isToday = DateUtils.isSameDay(lastEntry.date, now);
+
+    // Absent: Red
+    if (lastEntry.status.toLowerCase().contains('absent') || 
+       (isToday && isPast5PM && lastEntry.clockIn.isEmpty)) {
+      return Colors.red;
+    }
+
+    // Late: Orange
+    if (_isAfterTime(lastEntry.clockIn, 8, 15)) {
+      return Colors.orange;
+    }
+
+    // Complete: Green
+    double hours = _calculateHours(lastEntry);
+    if (lastEntry.clockIn.isNotEmpty && lastEntry.clockOut.isNotEmpty && hours >= 8) {
+      return Colors.green;
+    }
+
+    // Ongoing: Violet/DeepPurple
+    return Colors.deepPurple;
+  }
+
+  String _prettyStatus(AttendanceLogEntry entry) {
+    final now = DateTime.now();
+    bool isPast5PM = now.hour >= 17;
+    bool isToday = DateUtils.isSameDay(entry.date, now);
+
+    if (entry.status.toLowerCase().contains('absent') || 
+       (isToday && isPast5PM && entry.clockIn.isEmpty)) {
+      return 'Absent';
+    }
+
+    if (_isAfterTime(entry.clockIn, 8, 15)) {
+      return 'Late';
+    }
+
+    double hours = _calculateHours(entry);
+    if (entry.clockIn.isNotEmpty && entry.clockOut.isNotEmpty && hours >= 8) {
+      return 'On-Time/Complete';
+    }
+
+    return 'On-Going/On-Time';
   }
 
   @override
@@ -49,7 +105,7 @@ class LogsSpecificPage extends StatelessWidget {
     final topColor =
         entries.isEmpty ? AppTheme.muted : _statusColorFromEntries(entries);
     final topTitle =
-        entries.isEmpty ? 'No Log Found' : _prettyStatus(entries.first.status);
+        entries.isEmpty ? 'No Log Found' : _prettyStatus(entries.last);
     final topSubtitle =
         entries.isEmpty ? 'No shift record' : '${entries.length} shift entr${entries.length == 1 ? 'y' : 'ies'}';
 
@@ -116,7 +172,10 @@ class LogsSpecificPage extends StatelessWidget {
                             : Column(
                                 children: [
                                   for (int i = 0; i < entries.length; i++) ...[
-                                    _ShiftBlock(entry: entries[i]),
+                                    _ShiftBlock(
+                                      entry: entries[i],
+                                      prettyStatus: _prettyStatus(entries[i]),
+                                    ),
                                     if (i != entries.length - 1)
                                       const Padding(
                                         padding: EdgeInsets.symmetric(vertical: 18),
@@ -156,15 +215,13 @@ class LogsSpecificPage extends StatelessWidget {
 }
 
 class _ShiftBlock extends StatelessWidget {
-  const _ShiftBlock({required this.entry});
+  const _ShiftBlock({
+    required this.entry,
+    required this.prettyStatus,
+  });
 
   final AttendanceLogEntry entry;
-
-  String _prettyStatus(String status) {
-    if (status.trim().isEmpty) return 'Present';
-    final lower = status.toLowerCase();
-    return lower[0].toUpperCase() + lower.substring(1);
-  }
+  final String prettyStatus;
 
   @override
   Widget build(BuildContext context) {
@@ -183,14 +240,13 @@ class _ShiftBlock extends StatelessWidget {
                     fontSize: 14,
                   ),
                 ),
-              if (entry.status.isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.only(top: 4),
-                  child: Text(
-                    'Status: ${_prettyStatus(entry.status)}',
-                    style: const TextStyle(color: AppTheme.muted),
-                  ),
+              Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Text(
+                  'Status: $prettyStatus',
+                  style: const TextStyle(color: AppTheme.muted),
                 ),
+              ),
               if (entry.remarks.isNotEmpty)
                 Padding(
                   padding: const EdgeInsets.only(top: 4),

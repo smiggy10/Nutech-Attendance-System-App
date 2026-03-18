@@ -26,7 +26,6 @@ class _LogsPageState extends State<LogsPage> {
     _futureLogs = AttendanceLogsService.fetchCurrentUserLogs();
   }
 
-  // Updated to return Future<void> for the RefreshIndicator
   Future<void> _handleRefresh() async {
     setState(() {
       _futureLogs = AttendanceLogsService.fetchCurrentUserLogs();
@@ -48,25 +47,86 @@ class _LogsPageState extends State<LogsPage> {
     return map;
   }
 
-  Color _statusColorFromEntries(List<AttendanceLogEntry> entries) {
-    final statuses = entries.map((e) => e.status.toLowerCase()).toList();
-
-    if (statuses.any((s) => s.contains('absent'))) {
-      return Colors.redAccent;
+  /// Helper to calculate the difference in hours
+  double _calculateHours(AttendanceLogEntry entry) {
+    if (entry.clockIn.isEmpty || entry.clockOut.isEmpty) return 0.0;
+    try {
+      final DateFormat format = DateFormat("hh:mm a");
+      final DateTime inTime = format.parse(entry.clockIn);
+      final DateTime outTime = format.parse(entry.clockOut);
+      return outTime.difference(inTime).inMinutes / 60.0;
+    } catch (e) {
+      return 0.0;
     }
-    if (statuses.any((s) => s.contains('late'))) {
-      return Colors.orange;
-    }
-    if (statuses.any((s) => s.contains('incomplete'))) {
-      return Colors.deepPurple;
-    }
-    return AppTheme.teal;
   }
 
-  String _prettyStatus(String status) {
-    if (status.trim().isEmpty) return 'Present';
-    final lower = status.toLowerCase();
-    return lower[0].toUpperCase() + lower.substring(1);
+  /// New Helper to check specific time thresholds (e.g., 8:15 AM)
+  bool _isAfterTime(String timeStr, int hour, int minute) {
+    if (timeStr.isEmpty) return false;
+    try {
+      final DateFormat format = DateFormat("hh:mm a");
+      final DateTime time = format.parse(timeStr);
+      if (time.hour > hour) return true;
+      if (time.hour == hour && time.minute > minute) return true;
+      return false;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  Color _statusColorFromEntries(List<AttendanceLogEntry> entries) {
+    if (entries.isEmpty) return Colors.transparent;
+    final lastEntry = entries.last;
+    
+    // Logic for Absent: No logs and it's after 5:00 PM
+    final now = DateTime.now();
+    bool isPast5PM = now.hour >= 17;
+    bool isToday = isSameDay(lastEntry.date, now);
+
+    if (lastEntry.status.toLowerCase().contains('absent') || 
+       (isToday && isPast5PM && lastEntry.clockIn.isEmpty)) {
+      return Colors.red;
+    }
+
+    // Logic for Late: Clocked in after 8:15 AM
+    if (_isAfterTime(lastEntry.clockIn, 8, 15)) {
+      return Colors.orange;
+    }
+
+    // Logic for On-Time/Complete: Clocked in <= 8:15, has clock out, and worked 8+ hours
+    double hours = _calculateHours(lastEntry);
+    if (lastEntry.clockIn.isNotEmpty && lastEntry.clockOut.isNotEmpty && hours >= 8) {
+      return Colors.green;
+    }
+
+    // Logic for On-Going/On-Time: Clocked in but no clock out yet
+    return Colors.deepPurple;
+  }
+
+  String _prettyStatus(AttendanceLogEntry entry) {
+    final now = DateTime.now();
+    bool isPast5PM = now.hour >= 17;
+    bool isToday = isSameDay(entry.date, now);
+
+    if (entry.status.toLowerCase().contains('absent') || 
+       (isToday && isPast5PM && entry.clockIn.isEmpty)) {
+      return 'Absent';
+    }
+
+    if (_isAfterTime(entry.clockIn, 8, 15)) {
+      return 'Late';
+    }
+
+    double hours = _calculateHours(entry);
+    if (entry.clockIn.isNotEmpty && entry.clockOut.isNotEmpty && hours >= 8) {
+      return 'On-Time/Complete';
+    }
+
+    if (entry.clockIn.isNotEmpty && entry.clockOut.isEmpty) {
+      return 'On-Going/On-Time';
+    }
+
+    return entry.status.isEmpty ? 'On-Going/On-Time' : entry.status;
   }
 
   @override
@@ -74,14 +134,12 @@ class _LogsPageState extends State<LogsPage> {
     return RefreshIndicator(
       onRefresh: _handleRefresh,
       color: AppTheme.teal,
-      edgeOffset: 50, // Adjusts where the spinner appears
+      edgeOffset: 50,
       child: FutureBuilder<List<AttendanceLogEntry>>(
         future: _futureLogs,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(
-              child: CircularProgressIndicator(),
-            );
+            return const Center(child: CircularProgressIndicator());
           }
 
           if (snapshot.hasError) {
@@ -96,7 +154,6 @@ class _LogsPageState extends State<LogsPage> {
           final sortedLogs = [...logs];
 
           return SingleChildScrollView(
-            // physics ensures pull-to-refresh works even when content is small
             physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.fromLTRB(18, 55, 18, 22),
             child: Column(
@@ -202,7 +259,6 @@ class _LogsPageState extends State<LogsPage> {
                   ),
                 ),
                 const SizedBox(height: 25),
-                // Removed the Refresh Button from this Row
                 const Text(
                   'Recent History',
                   style: TextStyle(
@@ -212,27 +268,7 @@ class _LogsPageState extends State<LogsPage> {
                 ),
                 const SizedBox(height: 12),
                 if (sortedLogs.isEmpty)
-                  Center(
-                    child: Column(
-                      children: [
-                        const SizedBox(height: 40),
-                        Icon(
-                          Icons.history_toggle_off_rounded,
-                          size: 80,
-                          color: AppTheme.muted.withOpacity(0.2),
-                        ),
-                        const SizedBox(height: 16),
-                        const Text(
-                          'No attendance logs found yet.',
-                          style: TextStyle(
-                            color: AppTheme.muted,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        const SizedBox(height: 40),
-                      ],
-                    ),
-                  )
+                  const Center(child: Text("No attendance logs found yet."))
                 else
                   ...sortedLogs.take(8).map(
                         (log) => Padding(
@@ -240,7 +276,7 @@ class _LogsPageState extends State<LogsPage> {
                           child: _RecentLogCard(
                             entry: log,
                             statusColor: _statusColorFromEntries([log]),
-                            statusLabel: _prettyStatus(log.status),
+                            statusLabel: _prettyStatus(log),
                             onTap: () {
                               final key = _dayKey(log.date);
                               Navigator.push(
@@ -337,7 +373,6 @@ class _RecentLogCard extends StatelessWidget {
                     fontWeight: FontWeight.w800,
                   ),
                 ),
-                const SizedBox(height: 4),
                 const Icon(
                   Icons.chevron_right_rounded,
                   color: AppTheme.muted,
@@ -352,61 +387,19 @@ class _RecentLogCard extends StatelessWidget {
 }
 
 class _ErrorState extends StatelessWidget {
-  const _ErrorState({
-    required this.error,
-    required this.onRetry,
-  });
-
+  const _ErrorState({required this.error, required this.onRetry});
   final String error;
   final VoidCallback onRetry;
-
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      physics: const AlwaysScrollableScrollPhysics(),
-      padding: const EdgeInsets.fromLTRB(18, 55, 18, 22),
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 30),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(26),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.08),
-              blurRadius: 25,
-              offset: const Offset(0, 12),
-            ),
-          ],
-        ),
-        child: Column(
-          children: [
-            const Icon(
-              Icons.error_outline,
-              size: 72,
-              color: Colors.redAccent,
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              'Failed to Load Logs',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              error,
-              textAlign: TextAlign.center,
-              style: const TextStyle(color: Colors.grey),
-            ),
-            const SizedBox(height: 20),
-            OutlinedButton(
-              onPressed: onRetry,
-              child: const Text('Retry'),
-            ),
-          ],
-        ),
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.error_outline, size: 48, color: Colors.red),
+          Text(error),
+          ElevatedButton(onPressed: onRetry, child: const Text("Retry")),
+        ],
       ),
     );
   }
