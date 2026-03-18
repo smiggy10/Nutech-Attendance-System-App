@@ -30,62 +30,27 @@ class _ProfilePageState extends State<ProfilePage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      body: Stack(
-        children: [
-          Positioned(
-            left: 0,
-            right: 0,
-            top: 0,
-            height: 300,
-            child: Container(
-              color: AppTheme.teal.withOpacity(0.55),
-            ),
-          ),
-          Positioned(
-            bottom: 0,
-            left: 0,
-            right: 0,
-            child: Image.asset(
-              'assets/images/ui/bottombackground2.png',
-              width: double.infinity,
-              fit: BoxFit.fitWidth,
-            ),
-          ),
-          SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 18),
-              child: FutureBuilder<UserProfile?>(
-                future: _future,
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(
-                      child: CircularProgressIndicator(),
-                    );
-                  }
+    return FutureBuilder<UserProfile?>(
+      future: _future,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
 
-                  if (snapshot.hasError) {
-                    return _buildErrorState(snapshot.error.toString());
-                  }
+        if (snapshot.hasError) {
+          return _buildErrorState(snapshot.error.toString());
+        }
 
-                  final profile = snapshot.data;
-                  if (profile == null) {
-                    return _buildEmptyState();
-                  }
+        final profile = snapshot.data;
+        if (profile == null) {
+          return _buildEmptyState();
+        }
 
-                  return SingleChildScrollView(
-                    child: Padding(
-                      padding: const EdgeInsets.only(top: 20, bottom: 24),
-                      child: _buildProfileCard(context, profile),
-                    ),
-                  );
-                },
-              ),
-            ),
-          ),
-        ],
-      ),
+        return SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(18, 55, 18, 22),
+          child: _buildProfileCard(context, profile),
+        );
+      },
     );
   }
 
@@ -129,10 +94,7 @@ class _ProfilePageState extends State<ProfilePage> {
               style: TextStyle(color: Colors.grey),
             ),
             const SizedBox(height: 20),
-            OutlinedButton(
-              onPressed: _reload,
-              child: const Text('Retry'),
-            ),
+            OutlinedButton(onPressed: _reload, child: const Text('Retry')),
           ],
         ),
       ),
@@ -158,18 +120,11 @@ class _ProfilePageState extends State<ProfilePage> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(
-              Icons.error_outline,
-              size: 72,
-              color: Colors.redAccent,
-            ),
+            const Icon(Icons.error_outline, size: 72, color: Colors.redAccent),
             const SizedBox(height: 16),
             const Text(
               'Failed to Load Profile',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
             Text(
@@ -178,10 +133,7 @@ class _ProfilePageState extends State<ProfilePage> {
               style: const TextStyle(color: Colors.grey),
             ),
             const SizedBox(height: 20),
-            OutlinedButton(
-              onPressed: _reload,
-              child: const Text('Retry'),
-            ),
+            OutlinedButton(onPressed: _reload, child: const Text('Retry')),
           ],
         ),
       ),
@@ -244,10 +196,7 @@ class _ProfilePageState extends State<ProfilePage> {
           Text(
             _display(profile.fullName),
             textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.w900,
-            ),
+            style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900),
           ),
           Text(
             profile.position.isEmpty ? 'Employee' : profile.position,
@@ -339,9 +288,7 @@ class _ProfilePageState extends State<ProfilePage> {
     final shouldLogout = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text(
           'Confirm Logout',
           style: TextStyle(fontWeight: FontWeight.w900),
@@ -395,11 +342,7 @@ class _InfoRow extends StatelessWidget {
               color: AppTheme.teal.withOpacity(0.08),
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Icon(
-              icon,
-              color: AppTheme.teal,
-              size: 20,
-            ),
+            child: Icon(icon, color: AppTheme.teal, size: 20),
           ),
           const SizedBox(width: 15),
           Expanded(

@@ -33,7 +33,7 @@ class _HomeShellState extends State<HomeShell> {
 
     return Scaffold(
       body: NutechBackground(
-        showTopAccents: _index != 2,
+        showTopAccents: true,
         child: SafeArea(child: pages[_index]),
       ),
       bottomNavigationBar: _BottomNav(
