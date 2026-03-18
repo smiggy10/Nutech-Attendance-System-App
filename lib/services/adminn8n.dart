@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 
 const String kAdminN8nBaseUrl = String.fromEnvironment(
   'N8N_BASE_URL',
-  defaultValue: 'https://smiggybeepboop.app.n8n.cloud',
+  defaultValue: 'https://eyronnn.app.n8n.cloud',
 );
 
 bool get isAdminN8nConfigured {

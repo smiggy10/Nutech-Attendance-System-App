@@ -12,6 +12,7 @@ class AttendanceLogEntry {
   final int overtimeMinutes;
   final String site;
   final String remarks;
+  final String cardNo; // Added field
 
   const AttendanceLogEntry({
     required this.date,
@@ -24,6 +25,7 @@ class AttendanceLogEntry {
     required this.overtimeMinutes,
     required this.site,
     required this.remarks,
+    required this.cardNo, // Added to constructor
   });
 
   factory AttendanceLogEntry.fromJson(Map<String, dynamic> json) {
@@ -38,6 +40,7 @@ class AttendanceLogEntry {
       overtimeMinutes: _toInt(json['overtimeMinutes']),
       site: (json['site'] ?? '').toString(),
       remarks: (json['remarks'] ?? '').toString(),
+      cardNo: (json['cardNo'] ?? '').toString(), // Map from JSON
     );
   }
 

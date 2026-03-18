@@ -15,6 +15,8 @@ class DashboardData {
   final String todayClockOut;
   final String todayDevice;
   final String todayRemarks;
+  // Field added to store the RFID/Card number for the UI
+  final String todayCardNo;
 
   const DashboardData({
     required this.displayName,
@@ -30,6 +32,7 @@ class DashboardData {
     required this.todayClockOut,
     required this.todayDevice,
     required this.todayRemarks,
+    required this.todayCardNo,
   });
 
   double get progress => (todayMinutes / 480).clamp(0, 1).toDouble();
@@ -126,6 +129,9 @@ class DashboardService {
 
     final todayRemarks = latestToday?.remarks.trim() ?? '';
 
+    // Map the card number from the log entry (defaults to empty string if null)
+    final todayCardNo = latestToday?.cardNo.trim() ?? '';
+
     return DashboardData(
       displayName: displayName.isEmpty ? 'Guest' : displayName,
       profileImageUrl: profile?.profileImageUrl.trim() ?? '',
@@ -140,6 +146,7 @@ class DashboardService {
       todayClockOut: latestToday?.clockOut.trim() ?? '',
       todayDevice: todayDevice,
       todayRemarks: todayRemarks,
+      todayCardNo: todayCardNo, 
     );
   }
 

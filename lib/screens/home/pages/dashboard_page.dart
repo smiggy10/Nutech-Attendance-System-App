@@ -207,6 +207,11 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 
   Widget _buildTodayQuickInfo(DashboardData data) {
+    // Splits the device string (e.g., "Face / Card") into separate modes
+    List<String> modes = data.todayDevice.split('/');
+    String inMode = modes.isNotEmpty ? modes[0].trim() : '--';
+    String outMode = modes.length > 1 ? modes[1].trim() : '--';
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(18),
@@ -223,6 +228,8 @@ class _DashboardPageState extends State<DashboardPage> {
                 child: _InfoTile(
                   label: 'Clock In',
                   value: data.todayClockIn.isEmpty ? '--:--' : data.todayClockIn,
+                  subValue: inMode != '--' ? inMode : null,
+                  icon: Icons.login_rounded,
                 ),
               ),
               const SizedBox(width: 12),
@@ -230,56 +237,47 @@ class _DashboardPageState extends State<DashboardPage> {
                 child: _InfoTile(
                   label: 'Clock Out',
                   value: data.todayClockOut.isEmpty ? '--:--' : data.todayClockOut,
+                  subValue: outMode != '--' ? outMode : null,
+                  icon: Icons.logout_rounded,
                 ),
               ),
             ],
           ),
-          if (data.todayDevice.isNotEmpty || data.todayRemarks.isNotEmpty) ...[
+          // Show Card Number and Remarks if they exist
+          if (data.todayCardNo.isNotEmpty || data.todayRemarks.isNotEmpty) ...[
             const SizedBox(height: 14),
-            if (data.todayDevice.isNotEmpty)
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Icon(
-                    Icons.devices_rounded,
-                    size: 18,
-                    color: AppTheme.teal,
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      data.todayDevice,
+            if (data.todayCardNo.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8.0),
+                child: Row(
+                  children: [
+                    const Icon(Icons.credit_card, size: 16, color: AppTheme.teal),
+                    const SizedBox(width: 8),
+                    Text(
+                      "Card: ${data.todayCardNo}",
                       style: const TextStyle(
-                        color: Colors.black87,
+                        fontSize: 12, 
                         fontWeight: FontWeight.w600,
+                        color: Colors.black87
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            if (data.todayRemarks.isNotEmpty) ...[
-              const SizedBox(height: 8),
+            if (data.todayRemarks.isNotEmpty)
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Icon(
-                    Icons.notes_rounded,
-                    size: 18,
-                    color: AppTheme.teal,
-                  ),
+                  const Icon(Icons.notes_rounded, size: 16, color: AppTheme.teal),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       data.todayRemarks,
-                      style: const TextStyle(
-                        color: Colors.black54,
-                        fontWeight: FontWeight.w500,
-                      ),
+                      style: const TextStyle(color: Colors.black54, fontSize: 12),
                     ),
                   ),
                 ],
               ),
-            ],
           ],
         ],
       ),
@@ -308,7 +306,7 @@ class _DashboardPageState extends State<DashboardPage> {
                 ),
               ),
               Text(
-                "${data.todayMinutes / 60.0}h / 8h",
+                "${(data.todayMinutes / 60.0).toStringAsFixed(1)}h / 8h",
                 style: TextStyle(
                   fontSize: 12,
                   color: Colors.grey[400],
@@ -320,7 +318,7 @@ class _DashboardPageState extends State<DashboardPage> {
           ClipRRect(
             borderRadius: BorderRadius.circular(10),
             child: LinearProgressIndicator(
-              value: data.progress,
+              value: data.progress.clamp(0.0, 1.0),
               backgroundColor: Colors.grey[100],
               color: data.hasOvertime ? Colors.deepOrange : AppTheme.teal,
               minHeight: 10,
@@ -481,10 +479,14 @@ class _InfoTile extends StatelessWidget {
   const _InfoTile({
     required this.label,
     required this.value,
+    this.subValue,
+    this.icon,
   });
 
   final String label;
   final String value;
+  final String? subValue;
+  final IconData? icon;
 
   @override
   Widget build(BuildContext context) {
@@ -498,22 +500,54 @@ class _InfoTile extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            label,
-            style: const TextStyle(
-              color: Colors.black45,
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                label,
+                style: const TextStyle(
+                  color: Colors.black45,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              if (icon != null) Icon(icon, size: 14, color: Colors.grey[300]),
+            ],
           ),
           const SizedBox(height: 4),
           Text(
             value,
             style: const TextStyle(
-              fontSize: 18,
+              fontSize: 17,
               fontWeight: FontWeight.w900,
             ),
           ),
+          if (subValue != null) ...[
+            const SizedBox(height: 4),
+            Row(
+              children: [
+                Icon(
+                  subValue!.toLowerCase().contains('face') 
+                    ? Icons.face_retouching_natural_rounded 
+                    : Icons.credit_card_rounded,
+                  size: 12,
+                  color: AppTheme.teal,
+                ),
+                const SizedBox(width: 4),
+                Expanded(
+                  child: Text(
+                    subValue!,
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: Colors.grey[600],
+                      fontWeight: FontWeight.w600,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+          ],
         ],
       ),
     );
