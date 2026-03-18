@@ -35,81 +35,81 @@ class _DashboardPageState extends State<DashboardPage> {
     );
   }
 
-  void _reload() {
+  // Updated to return Future<void> for the RefreshIndicator
+  Future<void> _handleRefresh() async {
     setState(() {
       _future = DashboardService.fetchDashboard(
         fallbackUserName: widget.userName,
       );
     });
+    await _future;
   }
 
   @override
   Widget build(BuildContext context) {
     final currentDate = DateFormat('EEEE, MMMM d').format(DateTime.now());
 
-    return FutureBuilder<DashboardData>(
-      future: _future,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(
-            child: CircularProgressIndicator(),
-          );
-        }
+    return RefreshIndicator(
+      onRefresh: _handleRefresh,
+      color: AppTheme.teal,
+      edgeOffset: 80, // Offset to appear below the top padding if needed
+      child: FutureBuilder<DashboardData>(
+        future: _future,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(
+              child: CircularProgressIndicator(),
+            );
+          }
 
-        if (snapshot.hasError) {
-          return _ErrorState(
-            error: snapshot.error.toString(),
-            onRetry: _reload,
-          );
-        }
+          if (snapshot.hasError) {
+            return _ErrorState(
+              error: snapshot.error.toString(),
+              onRetry: _handleRefresh,
+            );
+          }
 
-        final data = snapshot.data;
+          final data = snapshot.data;
 
-        if (data == null) {
-          return _ErrorState(
-            error: 'No dashboard data returned.',
-            onRetry: _reload,
-          );
-        }
+          if (data == null) {
+            return _ErrorState(
+              error: 'No dashboard data returned.',
+              onRetry: _handleRefresh,
+            );
+          }
 
-        return SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(20, 60, 20, 30),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              _buildHeader(currentDate, data),
-              const SizedBox(height: 30),
-              _buildStatusCard(data),
-              const SizedBox(height: 18),
-              _buildTodayQuickInfo(data),
-              const SizedBox(height: 25),
-              _buildShiftProgressBar(data),
-              const SizedBox(height: 25),
-              _buildHoursSummaryCard(data),
-              const SizedBox(height: 25),
-              _buildWeeklyBreakdown(data),
-              const SizedBox(height: 16),
-              Align(
-                alignment: Alignment.centerRight,
-                child: TextButton.icon(
-                  onPressed: _reload,
-                  icon: const Icon(Icons.refresh),
-                  label: const Text('Refresh'),
+          return SingleChildScrollView(
+            // physics ensures pull-to-refresh works even when content is small
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.fromLTRB(20, 60, 20, 30),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                _buildHeader(currentDate, data),
+                const SizedBox(height: 30),
+                _buildStatusCard(data),
+                const SizedBox(height: 18),
+                _buildTodayQuickInfo(data),
+                const SizedBox(height: 25),
+                _buildShiftProgressBar(data),
+                const SizedBox(height: 25),
+                _buildHoursSummaryCard(data),
+                const SizedBox(height: 25),
+                _buildWeeklyBreakdown(data),
+                const SizedBox(height: 20), // Adjusted spacing after removing button
+                Text(
+                  "Last synced with Airtable: ${DateFormat('h:mm a').format(DateTime.now())}",
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: Colors.grey[400],
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                "Last synced with Airtable: ${DateFormat('h:mm a').format(DateTime.now())}",
-                style: TextStyle(
-                  fontSize: 11,
-                  color: Colors.grey[400],
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ],
-          ),
-        );
-      },
+              ],
+            ),
+          );
+        },
+      ),
     );
   }
 
@@ -207,7 +207,6 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 
   Widget _buildTodayQuickInfo(DashboardData data) {
-    // Splits the device string (e.g., "Face / Card") into separate modes
     List<String> modes = data.todayDevice.split('/');
     String inMode = modes.isNotEmpty ? modes[0].trim() : '--';
     String outMode = modes.length > 1 ? modes[1].trim() : '--';
@@ -243,7 +242,6 @@ class _DashboardPageState extends State<DashboardPage> {
               ),
             ],
           ),
-          // Show Card Number and Remarks if they exist
           if (data.todayCardNo.isNotEmpty || data.todayRemarks.isNotEmpty) ...[
             const SizedBox(height: 14),
             if (data.todayCardNo.isNotEmpty)
@@ -566,6 +564,7 @@ class _ErrorState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
+      physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(20, 60, 20, 30),
       child: Container(
         width: double.infinity,
