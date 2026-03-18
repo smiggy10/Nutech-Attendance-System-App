@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
+
+import '../../services/n8n_api.dart';
+import '../../services/user_session.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/nutech_background.dart';
 import '../../widgets/nutech_text_field.dart';
 import '../../widgets/primary_button.dart';
-import '../home/home_shell.dart';
 import '../admin/admin_shell.dart';
+import '../home/home_shell.dart';
 import 'forgot_password_screen.dart';
 import 'signup_screen.dart';
-import '../../services/n8n_api.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -20,8 +22,10 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   bool _obscure = true;
+
   final TextEditingController _userIdController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+
   bool _isLoggingIn = false;
 
   @override
@@ -51,6 +55,8 @@ class _LoginScreenState extends State<LoginScreen> {
 
     try {
       if (userId.toLowerCase() == '1' && password == '1') {
+        UserSession.clear();
+
         if (!mounted) return;
 
         ScaffoldMessenger.of(context).showSnackBar(
@@ -64,9 +70,14 @@ class _LoginScreenState extends State<LoginScreen> {
         return;
       }
 
-      final response = await N8nApi.login(userId: userId, password: password);
+      final response = await N8nApi.login(
+        userId: userId,
+        password: password,
+      );
+
       final success = response['success'] == true || response.isEmpty;
-      final message = response['message']?.toString() ?? 'Login successful.';
+      final message =
+          response['message']?.toString() ?? 'Login successful.';
 
       if (!mounted) return;
 
@@ -79,9 +90,13 @@ class _LoginScreenState extends State<LoginScreen> {
 
       if (!success) return;
 
+      // Save the logged-in identifier for the user profile page.
+      UserSession.setLoginIdentifier(userId);
+
       Navigator.pushReplacementNamed(context, HomeShell.route);
     } catch (e) {
       if (!mounted) return;
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Login failed: $e'),
@@ -100,8 +115,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // ✅ FIX: This prevents the background from moving when the keyboard appears
-      resizeToAvoidBottomInset: false, 
+      resizeToAvoidBottomInset: false,
       body: NutechBackground(
         child: SafeArea(
           child: SingleChildScrollView(
@@ -147,17 +161,23 @@ class _LoginScreenState extends State<LoginScreen> {
                       width: 22,
                       height: 22,
                     ),
-                    onPressed: () => setState(() => _obscure = !_obscure),
+                    onPressed: () {
+                      setState(() {
+                        _obscure = !_obscure;
+                      });
+                    },
                   ),
                 ),
                 const SizedBox(height: 10),
                 Align(
                   alignment: Alignment.centerRight,
                   child: TextButton(
-                    onPressed: () => Navigator.pushNamed(
-                      context,
-                      ForgotPasswordScreen.route,
-                    ),
+                    onPressed: () {
+                      Navigator.pushNamed(
+                        context,
+                        ForgotPasswordScreen.route,
+                      );
+                    },
                     child: const Text('Forgot password?'),
                   ),
                 ),
