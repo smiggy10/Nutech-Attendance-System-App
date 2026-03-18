@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+
+import '../../../services/dashboard_service.dart';
 import '../../../theme/app_theme.dart';
 
 class DashboardPage extends StatefulWidget {
@@ -9,140 +11,282 @@ class DashboardPage extends StatefulWidget {
     required this.isActive,
     required this.selectedSite,
     required this.onClockOut,
-    this.userName, // ✅ Removed the default "Juan" here
+    this.userName,
   });
 
   final VoidCallback onStartShift;
   final bool isActive;
   final String selectedSite;
   final VoidCallback onClockOut;
-  final String? userName; // ✅ Made nullable to detect if a user is missing
+  final String? userName;
 
   @override
   State<DashboardPage> createState() => _DashboardPageState();
 }
 
 class _DashboardPageState extends State<DashboardPage> {
-  @override
-  Widget build(BuildContext context) {
-    String currentDate = DateFormat('EEEE, MMMM d').format(DateTime.now());
+  late Future<DashboardData> _future;
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(20, 60, 20, 30),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          _buildHeader(currentDate),
-          const SizedBox(height: 30),
-          _buildStatusCard(),
-          const SizedBox(height: 25),
-          _buildShiftProgressBar(), 
-          const SizedBox(height: 25),
-          _buildHoursSummaryCard(), 
-          const SizedBox(height: 25),
-          _buildWeeklyBreakdown(),
-          const SizedBox(height: 30),
-          Text(
-            "Last synced with Dahua Device: Just now",
-            style: TextStyle(fontSize: 11, color: Colors.grey[400], fontWeight: FontWeight.w500),
-          ),
-        ],
-      ),
+  @override
+  void initState() {
+    super.initState();
+    _future = DashboardService.fetchDashboard(
+      fallbackUserName: widget.userName,
     );
   }
 
-  Widget _buildHeader(String date) {
-    // ✅ Logic: If userName is null or empty, show "Guest" or "User"
-    final String displayName = (widget.userName == null || widget.userName!.isEmpty) 
-        ? "Guest" 
-        : widget.userName!;
+  void _reload() {
+    setState(() {
+      _future = DashboardService.fetchDashboard(
+        fallbackUserName: widget.userName,
+      );
+    });
+  }
 
+  @override
+  Widget build(BuildContext context) {
+    final currentDate = DateFormat('EEEE, MMMM d').format(DateTime.now());
+
+    return FutureBuilder<DashboardData>(
+      future: _future,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(
+            child: CircularProgressIndicator(),
+          );
+        }
+
+        if (snapshot.hasError) {
+          return _ErrorState(
+            error: snapshot.error.toString(),
+            onRetry: _reload,
+          );
+        }
+
+        final data = snapshot.data;
+
+        if (data == null) {
+          return _ErrorState(
+            error: 'No dashboard data returned.',
+            onRetry: _reload,
+          );
+        }
+
+        return SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(20, 60, 20, 30),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              _buildHeader(currentDate, data),
+              const SizedBox(height: 30),
+              _buildStatusCard(data),
+              const SizedBox(height: 18),
+              _buildTodayQuickInfo(data),
+              const SizedBox(height: 25),
+              _buildShiftProgressBar(data),
+              const SizedBox(height: 25),
+              _buildHoursSummaryCard(data),
+              const SizedBox(height: 25),
+              _buildWeeklyBreakdown(data),
+              const SizedBox(height: 16),
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton.icon(
+                  onPressed: _reload,
+                  icon: const Icon(Icons.refresh),
+                  label: const Text('Refresh'),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                "Last synced with Airtable: ${DateFormat('h:mm a').format(DateTime.now())}",
+                style: TextStyle(
+                  fontSize: 11,
+                  color: Colors.grey[400],
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildHeader(String date, DashboardData data) {
     return Row(
       children: [
-        _buildAvatar(),
+        _buildAvatar(data),
         const SizedBox(width: 14),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Welcome, $displayName!', 
+                'Welcome, ${data.displayName}!',
                 style: const TextStyle(
-                  fontSize: 22, 
+                  fontSize: 22,
                   fontWeight: FontWeight.w800,
                   letterSpacing: -0.5,
-                )
+                ),
               ),
               Text(
-                date, 
+                date,
                 style: TextStyle(
-                  fontSize: 14, 
-                  color: Colors.grey[600], 
-                  fontWeight: FontWeight.w500
-                )
+                  fontSize: 14,
+                  color: Colors.grey[600],
+                  fontWeight: FontWeight.w500,
+                ),
               ),
             ],
           ),
         ),
-        const Icon(Icons.wb_sunny_rounded, color: Colors.orangeAccent, size: 28),
+        const Icon(
+          Icons.wb_sunny_rounded,
+          color: Colors.orangeAccent,
+          size: 28,
+        ),
       ],
     );
   }
 
-  // --- UI Components remain as per your mockup ---
+  Widget _buildStatusCard(DashboardData data) {
+    final Color cardColor = data.isCurrentlyActive
+        ? AppTheme.teal
+        : data.todayMinutes > 0
+            ? const Color(0xFF215A4A)
+            : const Color(0xFF7A2821);
 
-  Widget _buildStatusCard() {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 20),
       decoration: BoxDecoration(
-        color: widget.isActive ? AppTheme.teal : const Color(0xFF7A2821), 
+        color: cardColor,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.1),
             blurRadius: 12,
             offset: const Offset(0, 6),
-          )
+          ),
         ],
       ),
       child: Column(
         children: [
           Text(
-            widget.isActive ? 'ACTIVE' : 'INACTIVE',
+            data.statusLabel,
             style: const TextStyle(
-              color: Colors.white, 
-              fontSize: 13, 
-              letterSpacing: 2.0, 
-              fontWeight: FontWeight.bold
+              color: Colors.white,
+              fontSize: 13,
+              letterSpacing: 2.0,
+              fontWeight: FontWeight.bold,
             ),
           ),
           const SizedBox(height: 8),
           Text(
-            widget.isActive ? widget.selectedSite : 'Disconnected from Device',
+            data.statusHeadline,
             textAlign: TextAlign.center,
             style: const TextStyle(
-              color: Colors.white, 
-              fontSize: 20, 
-              fontWeight: FontWeight.w900
+              color: Colors.white,
+              fontSize: 20,
+              fontWeight: FontWeight.w900,
             ),
           ),
           const SizedBox(height: 10),
           Text(
-            widget.isActive ? "Logged in via Dahua Terminal" : "Awaiting login from Dahua Device...",
-            style: const TextStyle(color: Colors.white70, fontSize: 12),
+            data.statusSubtext,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: Colors.white70,
+              fontSize: 12,
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildShiftProgressBar() {
-    double workedHours = widget.isActive ? 9.5 : 0.0; 
-    double standardShift = 8.0;
-    double progress = (workedHours / standardShift).clamp(0.0, 1.0);
-    bool hasOvertime = workedHours > standardShift;
+  Widget _buildTodayQuickInfo(DashboardData data) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey[100]!),
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: _InfoTile(
+                  label: 'Clock In',
+                  value: data.todayClockIn.isEmpty ? '--:--' : data.todayClockIn,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _InfoTile(
+                  label: 'Clock Out',
+                  value: data.todayClockOut.isEmpty ? '--:--' : data.todayClockOut,
+                ),
+              ),
+            ],
+          ),
+          if (data.todayDevice.isNotEmpty || data.todayRemarks.isNotEmpty) ...[
+            const SizedBox(height: 14),
+            if (data.todayDevice.isNotEmpty)
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Icon(
+                    Icons.devices_rounded,
+                    size: 18,
+                    color: AppTheme.teal,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      data.todayDevice,
+                      style: const TextStyle(
+                        color: Colors.black87,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            if (data.todayRemarks.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Icon(
+                    Icons.notes_rounded,
+                    size: 18,
+                    color: AppTheme.teal,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      data.todayRemarks,
+                      style: const TextStyle(
+                        color: Colors.black54,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ],
+        ],
+      ),
+    );
+  }
 
+  Widget _buildShiftProgressBar(DashboardData data) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -157,12 +301,18 @@ class _DashboardPageState extends State<DashboardPage> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                "Daily Shift Progress", 
-                style: TextStyle(fontWeight: FontWeight.w700, color: Colors.grey[800])
+                "Daily Shift Progress",
+                style: TextStyle(
+                  fontWeight: FontWeight.w700,
+                  color: Colors.grey[800],
+                ),
               ),
               Text(
-                "${workedHours.toStringAsFixed(1)}h / 8h",
-                style: TextStyle(fontSize: 12, color: Colors.grey[400]),
+                "${data.todayMinutes / 60.0}h / 8h",
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey[400],
+                ),
               ),
             ],
           ),
@@ -170,9 +320,9 @@ class _DashboardPageState extends State<DashboardPage> {
           ClipRRect(
             borderRadius: BorderRadius.circular(10),
             child: LinearProgressIndicator(
-              value: progress,
+              value: data.progress,
               backgroundColor: Colors.grey[100],
-              color: hasOvertime ? Colors.deepOrange : AppTheme.teal,
+              color: data.hasOvertime ? Colors.deepOrange : AppTheme.teal,
               minHeight: 10,
             ),
           ),
@@ -181,10 +331,7 @@ class _DashboardPageState extends State<DashboardPage> {
     );
   }
 
-  Widget _buildHoursSummaryCard() {
-    String todayDisplay = widget.isActive ? "9h 30m" : "0h";
-    String weeklyTotalDisplay = widget.isActive ? "32h 25m" : "0h";
-
+  Widget _buildHoursSummaryCard(DashboardData data) {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 24),
       decoration: BoxDecoration(
@@ -194,15 +341,21 @@ class _DashboardPageState extends State<DashboardPage> {
       ),
       child: Row(
         children: [
-          _buildHourCol("Hours Today", todayDisplay),
+          _buildHourCol("Hours Today", data.todayHoursLabel),
           Container(width: 1, height: 45, color: Colors.grey[100]),
-          _buildHourCol("Weekly Total", weeklyTotalDisplay),
+          _buildHourCol("Weekly Total", data.weeklyHoursLabel),
         ],
       ),
     );
   }
 
-  Widget _buildWeeklyBreakdown() {
+  Widget _buildWeeklyBreakdown(DashboardData data) {
+    const days = ['M', 'T', 'W', 'T', 'F'];
+    final maxMinutes = data.weekdayMinutes.fold<int>(
+      480,
+      (current, item) => item > current ? item : current,
+    );
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -213,20 +366,28 @@ class _DashboardPageState extends State<DashboardPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text("Weekly Distribution (Hours)", style: TextStyle(fontWeight: FontWeight.w700)),
+          const Text(
+            "Weekly Distribution (Hours)",
+            style: TextStyle(fontWeight: FontWeight.w700),
+          ),
           const SizedBox(height: 25),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             crossAxisAlignment: CrossAxisAlignment.end,
             children: List.generate(5, (index) {
-              final days = ['M', 'T', 'W', 'T', 'F'];
-              double height = widget.isActive ? [35.0, 55.0, 45.0, 75.0, 15.0][index] : 4.0;
-              
+              final minutes = data.weekdayMinutes[index];
+              final hours = minutes / 60.0;
+              final normalized = maxMinutes == 0 ? 0.0 : minutes / maxMinutes;
+              final height = minutes == 0 ? 6.0 : 18 + (normalized * 62);
+
               return Column(
                 children: [
                   Text(
-                    widget.isActive ? "${(height / 10).toStringAsFixed(1)}h" : "-",
-                    style: TextStyle(fontSize: 10, color: Colors.grey[400]),
+                    minutes == 0 ? '-' : '${hours.toStringAsFixed(1)}h',
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: Colors.grey[400],
+                    ),
                   ),
                   const SizedBox(height: 6),
                   AnimatedContainer(
@@ -234,12 +395,20 @@ class _DashboardPageState extends State<DashboardPage> {
                     width: 32,
                     height: height,
                     decoration: BoxDecoration(
-                      color: widget.isActive ? AppTheme.teal.withOpacity(0.7) : Colors.grey[200],
+                      color: minutes == 0
+                          ? Colors.grey[200]
+                          : AppTheme.teal.withOpacity(0.7),
                       borderRadius: BorderRadius.circular(4),
                     ),
                   ),
                   const SizedBox(height: 8),
-                  Text(days[index], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                  Text(
+                    days[index],
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                    ),
+                  ),
                 ],
               );
             }),
@@ -249,19 +418,35 @@ class _DashboardPageState extends State<DashboardPage> {
     );
   }
 
-  Widget _buildAvatar() {
+  Widget _buildAvatar(DashboardData data) {
     return Container(
-      width: 55, height: 55,
+      width: 55,
+      height: 55,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         border: Border.all(color: Colors.white, width: 2),
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 10, offset: const Offset(0, 4))
+          BoxShadow(
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
         ],
-        image: const DecorationImage(
-          image: AssetImage('assets/images/avatar.png'), 
-          fit: BoxFit.cover
-        ),
+      ),
+      child: ClipOval(
+        child: data.profileImageUrl.isNotEmpty
+            ? Image.network(
+                data.profileImageUrl,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => Image.asset(
+                  'assets/images/avatar.png',
+                  fit: BoxFit.cover,
+                ),
+              )
+            : Image.asset(
+                'assets/images/avatar.png',
+                fit: BoxFit.cover,
+              ),
       ),
     );
   }
@@ -270,10 +455,126 @@ class _DashboardPageState extends State<DashboardPage> {
     return Expanded(
       child: Column(
         children: [
-          Text(label, style: const TextStyle(fontWeight: FontWeight.w600, color: Colors.black45, fontSize: 13)),
+          Text(
+            label,
+            style: const TextStyle(
+              fontWeight: FontWeight.w600,
+              color: Colors.black45,
+              fontSize: 13,
+            ),
+          ),
           const SizedBox(height: 4),
-          Text(value, style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w900)),
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 26,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
         ],
+      ),
+    );
+  }
+}
+
+class _InfoTile extends StatelessWidget {
+  const _InfoTile({
+    required this.label,
+    required this.value,
+  });
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFB),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.grey.shade100),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(
+              color: Colors.black45,
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ErrorState extends StatelessWidget {
+  const _ErrorState({
+    required this.error,
+    required this.onRetry,
+  });
+
+  final String error;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(20, 60, 20, 30),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 30),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(26),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.08),
+              blurRadius: 25,
+              offset: const Offset(0, 12),
+            ),
+          ],
+        ),
+        child: Column(
+          children: [
+            const Icon(
+              Icons.error_outline,
+              size: 72,
+              color: Colors.redAccent,
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Failed to Load Dashboard',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              error,
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: Colors.grey),
+            ),
+            const SizedBox(height: 20),
+            OutlinedButton(
+              onPressed: onRetry,
+              child: const Text('Retry'),
+            ),
+          ],
+        ),
       ),
     );
   }
