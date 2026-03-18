@@ -26,10 +26,12 @@ class _LogsPageState extends State<LogsPage> {
     _futureLogs = AttendanceLogsService.fetchCurrentUserLogs();
   }
 
-  void _reload() {
+  // Updated to return Future<void> for the RefreshIndicator
+  Future<void> _handleRefresh() async {
     setState(() {
       _futureLogs = AttendanceLogsService.fetchCurrentUserLogs();
     });
+    await _futureLogs;
   }
 
   DateTime _dayKey(DateTime date) => DateTime(date.year, date.month, date.day);
@@ -69,199 +71,196 @@ class _LogsPageState extends State<LogsPage> {
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<List<AttendanceLogEntry>>(
-      future: _futureLogs,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(
-            child: CircularProgressIndicator(),
-          );
-        }
+    return RefreshIndicator(
+      onRefresh: _handleRefresh,
+      color: AppTheme.teal,
+      edgeOffset: 50, // Adjusts where the spinner appears
+      child: FutureBuilder<List<AttendanceLogEntry>>(
+        future: _futureLogs,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(
+              child: CircularProgressIndicator(),
+            );
+          }
 
-        if (snapshot.hasError) {
-          return _ErrorState(
-            error: snapshot.error.toString(),
-            onRetry: _reload,
-          );
-        }
+          if (snapshot.hasError) {
+            return _ErrorState(
+              error: snapshot.error.toString(),
+              onRetry: _handleRefresh,
+            );
+          }
 
-        final logs = snapshot.data ?? [];
-        final grouped = _groupByDay(logs);
-        final sortedLogs = [...logs];
+          final logs = snapshot.data ?? [];
+          final grouped = _groupByDay(logs);
+          final sortedLogs = [...logs];
 
-        return SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(18, 55, 18, 22),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'ATTENDANCE',
-                style: Theme.of(context)
-                    .textTheme
-                    .headlineMedium
-                    ?.copyWith(fontWeight: FontWeight.w900),
-              ),
-              Text(
-                'LOGS',
-                style: Theme.of(context)
-                    .textTheme
-                    .headlineMedium
-                    ?.copyWith(fontWeight: FontWeight.w900),
-              ),
-              const SizedBox(height: 14),
-              Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppTheme.border),
+          return SingleChildScrollView(
+            // physics ensures pull-to-refresh works even when content is small
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.fromLTRB(18, 55, 18, 22),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'ATTENDANCE',
+                  style: Theme.of(context)
+                      .textTheme
+                      .headlineMedium
+                      ?.copyWith(fontWeight: FontWeight.w900),
                 ),
-                child: TableCalendar(
-                  firstDay: DateTime(2020, 1, 1),
-                  lastDay: DateTime(2035, 12, 31),
-                  focusedDay: _focusedDay,
-                  calendarFormat: _calendarFormat,
-                  rowHeight: 52,
-                  daysOfWeekHeight: 25,
-                  sixWeekMonthsEnforced: true,
-                  selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
-                  onPageChanged: (focusedDay) {
-                    setState(() {
-                      _focusedDay = focusedDay;
-                    });
-                  },
-                  onDaySelected: (selectedDay, focusedDay) {
-                    final key = _dayKey(selectedDay);
-                    final selectedEntries = grouped[key] ?? [];
+                Text(
+                  'LOGS',
+                  style: Theme.of(context)
+                      .textTheme
+                      .headlineMedium
+                      ?.copyWith(fontWeight: FontWeight.w900),
+                ),
+                const SizedBox(height: 14),
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppTheme.border),
+                  ),
+                  child: TableCalendar(
+                    firstDay: DateTime(2020, 1, 1),
+                    lastDay: DateTime(2035, 12, 31),
+                    focusedDay: _focusedDay,
+                    calendarFormat: _calendarFormat,
+                    rowHeight: 52,
+                    daysOfWeekHeight: 25,
+                    sixWeekMonthsEnforced: true,
+                    selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
+                    onPageChanged: (focusedDay) {
+                      setState(() {
+                        _focusedDay = focusedDay;
+                      });
+                    },
+                    onDaySelected: (selectedDay, focusedDay) {
+                      final key = _dayKey(selectedDay);
+                      final selectedEntries = grouped[key] ?? [];
 
-                    setState(() {
-                      _selectedDay = selectedDay;
-                      _focusedDay = focusedDay;
-                    });
+                      setState(() {
+                        _selectedDay = selectedDay;
+                        _focusedDay = focusedDay;
+                      });
 
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => LogsSpecificPage(
-                          date: selectedDay,
-                          entries: selectedEntries,
-                        ),
-                      ),
-                    );
-                  },
-                  calendarBuilders: CalendarBuilders(
-                    markerBuilder: (context, date, events) {
-                      final key = _dayKey(date);
-                      final entries = grouped[key];
-
-                      if (entries == null || entries.isEmpty) {
-                        return null;
-                      }
-
-                      final color = _statusColorFromEntries(entries);
-
-                      return Positioned(
-                        bottom: 6,
-                        child: Container(
-                          width: 7,
-                          height: 7,
-                          decoration: BoxDecoration(
-                            color: color,
-                            shape: BoxShape.circle,
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => LogsSpecificPage(
+                            date: selectedDay,
+                            entries: selectedEntries,
                           ),
                         ),
                       );
                     },
-                  ),
-                  headerStyle: const HeaderStyle(
-                    formatButtonVisible: false,
-                    titleCentered: true,
-                    titleTextStyle: TextStyle(
-                      fontWeight: FontWeight.w900,
-                      fontSize: 18,
-                    ),
-                  ),
-                  calendarStyle: const CalendarStyle(
-                    todayDecoration: BoxDecoration(
-                      color: AppTheme.teal,
-                      shape: BoxShape.circle,
-                    ),
-                    selectedDecoration: BoxDecoration(
-                      color: AppTheme.ink,
-                      shape: BoxShape.circle,
-                    ),
-                    outsideDaysVisible: true,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 25),
-              Row(
-                children: [
-                  const Expanded(
-                    child: Text(
-                      'Recent History',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                  ),
-                  TextButton.icon(
-                    onPressed: _reload,
-                    icon: const Icon(Icons.refresh),
-                    label: const Text('Refresh'),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              if (sortedLogs.isEmpty)
-                Center(
-                  child: Column(
-                    children: [
-                      const SizedBox(height: 40),
-                      Icon(
-                        Icons.history_toggle_off_rounded,
-                        size: 80,
-                        color: AppTheme.muted.withOpacity(0.2),
-                      ),
-                      const SizedBox(height: 16),
-                      const Text(
-                        'No attendance logs found yet.',
-                        style: TextStyle(
-                          color: AppTheme.muted,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      const SizedBox(height: 40),
-                    ],
-                  ),
-                )
-              else
-                ...sortedLogs.take(8).map(
-                  (log) => Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: _RecentLogCard(
-                      entry: log,
-                      statusColor: _statusColorFromEntries([log]),
-                      statusLabel: _prettyStatus(log.status),
-                      onTap: () {
-                        final key = _dayKey(log.date);
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => LogsSpecificPage(
-                              date: log.date,
-                              entries: grouped[key] ?? [],
+                    calendarBuilders: CalendarBuilders(
+                      markerBuilder: (context, date, events) {
+                        final key = _dayKey(date);
+                        final entries = grouped[key];
+
+                        if (entries == null || entries.isEmpty) {
+                          return null;
+                        }
+
+                        final color = _statusColorFromEntries(entries);
+
+                        return Positioned(
+                          bottom: 6,
+                          child: Container(
+                            width: 7,
+                            height: 7,
+                            decoration: BoxDecoration(
+                              color: color,
+                              shape: BoxShape.circle,
                             ),
                           ),
                         );
                       },
                     ),
+                    headerStyle: const HeaderStyle(
+                      formatButtonVisible: false,
+                      titleCentered: true,
+                      titleTextStyle: TextStyle(
+                        fontWeight: FontWeight.w900,
+                        fontSize: 18,
+                      ),
+                    ),
+                    calendarStyle: const CalendarStyle(
+                      todayDecoration: BoxDecoration(
+                        color: AppTheme.teal,
+                        shape: BoxShape.circle,
+                      ),
+                      selectedDecoration: BoxDecoration(
+                        color: AppTheme.ink,
+                        shape: BoxShape.circle,
+                      ),
+                      outsideDaysVisible: true,
+                    ),
                   ),
                 ),
-            ],
-          ),
-        );
-      },
+                const SizedBox(height: 25),
+                // Removed the Refresh Button from this Row
+                const Text(
+                  'Recent History',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                if (sortedLogs.isEmpty)
+                  Center(
+                    child: Column(
+                      children: [
+                        const SizedBox(height: 40),
+                        Icon(
+                          Icons.history_toggle_off_rounded,
+                          size: 80,
+                          color: AppTheme.muted.withOpacity(0.2),
+                        ),
+                        const SizedBox(height: 16),
+                        const Text(
+                          'No attendance logs found yet.',
+                          style: TextStyle(
+                            color: AppTheme.muted,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(height: 40),
+                      ],
+                    ),
+                  )
+                else
+                  ...sortedLogs.take(8).map(
+                        (log) => Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: _RecentLogCard(
+                            entry: log,
+                            statusColor: _statusColorFromEntries([log]),
+                            statusLabel: _prettyStatus(log.status),
+                            onTap: () {
+                              final key = _dayKey(log.date);
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => LogsSpecificPage(
+                                    date: log.date,
+                                    entries: grouped[key] ?? [],
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                      ),
+              ],
+            ),
+          );
+        },
+      ),
     );
   }
 }
@@ -364,6 +363,7 @@ class _ErrorState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
+      physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(18, 55, 18, 22),
       child: Container(
         width: double.infinity,
