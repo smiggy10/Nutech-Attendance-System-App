@@ -22,10 +22,13 @@ class _ProfilePageState extends State<ProfilePage> {
     _future = UserProfileService.fetchCurrentUserProfile();
   }
 
-  void _reload() {
+  // Updated reload to return a Future, required by RefreshIndicator
+  Future<void> _reload() async {
     setState(() {
       _future = UserProfileService.fetchCurrentUserProfile();
     });
+    // Wait for the future to complete to dismiss the refresh indicator
+    await _future;
   }
 
   @override
@@ -46,9 +49,16 @@ class _ProfilePageState extends State<ProfilePage> {
           return _buildEmptyState();
         }
 
-        return SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(18, 55, 18, 22),
-          child: _buildProfileCard(context, profile),
+        // Added RefreshIndicator here
+        return RefreshIndicator(
+          onRefresh: _reload,
+          color: AppTheme.teal, // Matches your theme
+          child: SingleChildScrollView(
+            // physics ensures the scroll is always active so swipe-down works
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.fromLTRB(18, 55, 18, 22),
+            child: _buildProfileCard(context, profile),
+          ),
         );
       },
     );
@@ -256,16 +266,7 @@ class _ProfilePageState extends State<ProfilePage> {
             label: 'birthdate',
             value: _display(profile.birthdate),
           ),
-          const SizedBox(height: 14),
-          Align(
-            alignment: Alignment.centerRight,
-            child: TextButton.icon(
-              onPressed: _reload,
-              icon: const Icon(Icons.refresh),
-              label: const Text('Refresh'),
-            ),
-          ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 24), // Increased spacing since Refresh button is gone
           SizedBox(
             width: double.infinity,
             height: 58,
