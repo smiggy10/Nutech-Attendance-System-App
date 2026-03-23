@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/nutech_background.dart';
 import 'pages/admin_monitor_page.dart';
-import 'pages/admin_overview_page.dart';
+import 'pages/admin_overview_shell.dart';
 import 'pages/admin_reports_page.dart';
 
 class AdminShell extends StatefulWidget {
@@ -28,16 +28,21 @@ class _AdminShellState extends State<AdminShell> {
   @override
   Widget build(BuildContext context) {
     final pages = const [
-      AdminOverviewPage(),
+      AdminOverviewShell(),
       AdminMonitorPage(),
       AdminReportsPage(),
     ];
 
     return Scaffold(
       body: NutechBackground(
-        // Admin screens use the wave (bottombackground2), not the CCTV illustration.
-        bottomAsset: 'assets/images/ui/bottombackground2.png',
-        child: SafeArea(child: pages[_index]),
+        // Match employee home shell: header accents + default bottom illustration.
+        showTopAccents: true,
+        child: SafeArea(
+          child: IndexedStack(
+            index: _index,
+            children: pages,
+          ),
+        ),
       ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _index,

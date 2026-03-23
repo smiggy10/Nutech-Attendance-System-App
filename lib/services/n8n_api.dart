@@ -5,7 +5,7 @@ import 'package:http/http.dart' as http;
 /// Base URL of your n8n instance.
 const String kN8nBaseUrl = String.fromEnvironment(
   'N8N_BASE_URL',
-  defaultValue: 'https://eyronnn.app.n8n.cloud',
+  defaultValue: 'http://192.168.100.219:5678',
 );
 
 bool get isN8nConfigured {
@@ -28,6 +28,7 @@ class N8nWebhooks {
 
   static const String adminPending = '/webhook/admin/pending';
   static const String adminAction = '/webhook/admin/action';
+  static const String adminEmployees = '/webhook/admin/employees';
 
   static const String userProfile = '/webhook/user/profile';
   static const String userLogs = '/webhook/user/logs';
@@ -275,6 +276,15 @@ class N8nApi {
         'fullName': fullName,
         'action': action,
       },
+      throwOnNon2xx: false,
+    );
+  }
+
+  /// Admin: list all employees (empty JSON body).
+  static Future<Map<String, dynamic>> postAdminEmployees() {
+    return _postJson(
+      N8nWebhooks.adminEmployees,
+      <String, dynamic>{},
       throwOnNon2xx: false,
     );
   }

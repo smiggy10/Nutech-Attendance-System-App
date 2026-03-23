@@ -2,6 +2,7 @@ import '../../../services/adminn8n.dart';
 import '../../../services/n8n_api.dart';
 import 'package:flutter/material.dart';
 import '../../../theme/app_theme.dart';
+import 'admin_overview_shell.dart';
 import 'pending_approvals_page.dart';
 
 class AdminOverviewPage extends StatefulWidget {
@@ -224,6 +225,14 @@ class _AdminOverviewPageState extends State<AdminOverviewPage> {
                             ? '...'
                             : _totalEmployees.toString(),
                         valueColor: AppTheme.ink,
+                        showChevron: !_isLoadingOverview,
+                        onTap: _isLoadingOverview
+                            ? null
+                            : () {
+                                Navigator.of(context).pushNamed(
+                                  AdminOverviewShell.employeesRoute,
+                                );
+                              },
                       ),
                       const _DividerLine(),
                       _DataStatusRow(
@@ -417,16 +426,20 @@ class _DataStatusRow extends StatelessWidget {
     required this.label,
     required this.value,
     required this.valueColor,
+    this.onTap,
+    this.showChevron = false,
   });
 
   final String iconAsset;
   final String label;
   final String value;
   final Color valueColor;
+  final VoidCallback? onTap;
+  final bool showChevron;
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
+    final row = Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       child: Row(
         children: [
@@ -446,7 +459,27 @@ class _DataStatusRow extends StatelessWidget {
               color: valueColor,
             ),
           ),
+          if (showChevron) ...[
+            const SizedBox(width: 4),
+            Icon(
+              Icons.chevron_right,
+              color: Colors.black.withOpacity(0.28),
+              size: 22,
+            ),
+          ],
         ],
+      ),
+    );
+
+    if (onTap == null) {
+      return row;
+    }
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        child: row,
       ),
     );
   }

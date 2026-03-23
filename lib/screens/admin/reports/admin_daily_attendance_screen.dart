@@ -5,9 +5,12 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:nutech_app/services/adminn8n.dart';
 import 'package:nutech_app/theme/app_theme.dart';
+import 'package:nutech_app/widgets/admin_report_top_bar.dart';
 import 'package:nutech_app/widgets/nutech_background.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
+
+import 'admin_daily_attendance_detail_screen.dart';
 
 class AdminDailyAttendanceScreen extends StatefulWidget {
   const AdminDailyAttendanceScreen({super.key});
@@ -21,7 +24,16 @@ class AdminDailyAttendanceScreen extends StatefulWidget {
 
 class _AdminDailyAttendanceScreenState
     extends State<AdminDailyAttendanceScreen> {
-  DateTime _selectedDate = DateTime.now();
+  /// Philippines (PHT) calendar date for the report query — avoids “wrong day” vs UTC.
+  static DateTime _manilaDateOnlyNow() {
+    final ph = DateTime.now().toUtc().add(_manilaOffsetFromUtc);
+    return DateTime(ph.year, ph.month, ph.day);
+  }
+
+  /// Asia/Manila is UTC+8 year-round (no DST).
+  static const Duration _manilaOffsetFromUtc = Duration(hours: 8);
+
+  DateTime _selectedDate = _manilaDateOnlyNow();
   late Future<AdminDailyAttendanceReportData> _attendanceData;
   AdminDailyAttendanceReportData? _lastLoadedReport;
   bool _isExporting = false;
@@ -60,13 +72,33 @@ class _AdminDailyAttendanceScreenState
     }
   }
 
+  void _openDailyDetail(
+    BuildContext context,
+    AdminDailyAttendanceReportData report,
+    String dateDisplayLabel,
+    DailyAttendanceDetailKind kind,
+  ) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => AdminDailyAttendanceDetailScreen(
+          kind: kind,
+          reportDateLabel: dateDisplayLabel,
+          data: report,
+          formatTimeManila: _formatTime,
+        ),
+      ),
+    );
+  }
+
+  /// Parses ISO timestamps and shows clock time in **Manila (PHT, UTC+8)**.
   String _formatTime(String? raw) {
     if (raw == null || raw.trim().isEmpty) return '--';
 
     try {
-      final dt = DateTime.parse(raw).toUtc();
-      final hour = dt.hour;
-      final minute = dt.minute;
+      final instantUtc = DateTime.parse(raw.trim()).toUtc();
+      final manila = instantUtc.add(_manilaOffsetFromUtc);
+      final hour = manila.hour;
+      final minute = manila.minute;
 
       final suffix = hour >= 12 ? 'PM' : 'AM';
       final hour12 = hour == 0
@@ -159,6 +191,11 @@ class _AdminDailyAttendanceScreenState
         child: SafeArea(
           child: Column(
             children: [
+              AdminReportTopBar(
+                onBack: () => Navigator.of(context).pop(),
+                onExport: _exportReport,
+                exportBusy: _isExporting,
+              ),
               Expanded(
                 child: SingleChildScrollView(
                   padding: const EdgeInsets.symmetric(vertical: 10),
@@ -208,7 +245,15 @@ class _AdminDailyAttendanceScreenState
                                 if (snapshot.hasError) {
                                   return Column(
                                     children: [
-                                      _buildStatsRow('0', '0', '0', '0'),
+                                      _buildStatsRow(
+                                        context,
+                                        null,
+                                        formattedDate,
+                                        '0',
+                                        '0',
+                                        '0',
+                                        '0',
+                                      ),
                                       const SizedBox(height: 14),
                                       _buildSectionDivider(),
                                       const SizedBox(height: 10),
@@ -235,7 +280,15 @@ class _AdminDailyAttendanceScreenState
                                 if (report == null) {
                                   return Column(
                                     children: [
-                                      _buildStatsRow('0', '0', '0', '0'),
+                                      _buildStatsRow(
+                                        context,
+                                        null,
+                                        formattedDate,
+                                        '0',
+                                        '0',
+                                        '0',
+                                        '0',
+                                      ),
                                       const SizedBox(height: 14),
                                       _buildSectionDivider(),
                                       const SizedBox(height: 10),
@@ -262,6 +315,9 @@ class _AdminDailyAttendanceScreenState
                                   return Column(
                                     children: [
                                       _buildStatsRow(
+                                        context,
+                                        report,
+                                        formattedDate,
                                         report.present.toString(),
                                         report.late.toString(),
                                         report.absent.toString(),
@@ -292,6 +348,9 @@ class _AdminDailyAttendanceScreenState
                                 return Column(
                                   children: [
                                     _buildStatsRow(
+                                      context,
+                                      report,
+                                      formattedDate,
                                       report.present.toString(),
                                       report.late.toString(),
                                       report.absent.toString(),
@@ -314,7 +373,6 @@ class _AdminDailyAttendanceScreenState
                   ),
                 ),
               ),
-              _buildBottomButtons(),
             ],
           ),
         ),
@@ -381,7 +439,21 @@ class _AdminDailyAttendanceScreenState
     );
   }
 
-  Widget _buildStatsRow(String p, String l, String a, String o) {
+  Widget _buildStatsRow(
+    BuildContext context,
+    AdminDailyAttendanceReportData? report,
+    String formattedDateLabel,
+    String p,
+    String l,
+    String a,
+    String o,
+  ) {
+    void open(DailyAttendanceDetailKind kind) {
+      final r = report;
+      if (r == null) return;
+      _openDailyDetail(context, r, formattedDateLabel, kind);
+    }
+
     return Row(
       children: [
         Expanded(
@@ -389,6 +461,7 @@ class _AdminDailyAttendanceScreenState
             label: 'Present',
             value: p,
             color: AppTheme.teal,
+            onTap: report == null ? null : () => open(DailyAttendanceDetailKind.present),
           ),
         ),
         const SizedBox(width: 10),
@@ -397,6 +470,7 @@ class _AdminDailyAttendanceScreenState
             label: 'Late',
             value: l,
             color: const Color(0xFFE74C3C),
+            onTap: report == null ? null : () => open(DailyAttendanceDetailKind.late),
           ),
         ),
         const SizedBox(width: 10),
@@ -405,6 +479,7 @@ class _AdminDailyAttendanceScreenState
             label: 'Absent',
             value: a,
             color: const Color(0xFFF39C12),
+            onTap: report == null ? null : () => open(DailyAttendanceDetailKind.absent),
           ),
         ),
         const SizedBox(width: 10),
@@ -413,6 +488,7 @@ class _AdminDailyAttendanceScreenState
             label: 'Overtime',
             value: o,
             color: const Color(0xFF5DADE2),
+            onTap: report == null ? null : () => open(DailyAttendanceDetailKind.overtime),
           ),
         ),
       ],
@@ -441,61 +517,6 @@ class _AdminDailyAttendanceScreenState
             ...rows.map((r) => _dataRow(r)),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildBottomButtons() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 0, 20, 18),
-      child: Row(
-        children: [
-          Expanded(
-            child: SizedBox(
-              height: 52,
-              child: ElevatedButton(
-                onPressed: _isExporting ? null : _exportReport,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.teal,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
-                child: Text(
-                  _isExporting ? 'Exporting...' : 'Export Report',
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w800,
-                    fontSize: 16,
-                  ),
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: SizedBox(
-              height: 52,
-              child: ElevatedButton(
-                onPressed: () => Navigator.pop(context),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFE6E7EA),
-                  foregroundColor: const Color(0xFF5B5F66),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
-                child: const Text(
-                  'Back',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w800,
-                    fontSize: 16,
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -615,20 +636,23 @@ class _MiniStatCard extends StatelessWidget {
     required this.label,
     required this.value,
     required this.color,
+    this.onTap,
   });
 
   final String label;
   final String value;
   final Color color;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    final radius = BorderRadius.circular(10);
+    final card = Container(
       height: 66,
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
         color: color,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: radius,
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.16),
@@ -661,6 +685,21 @@ class _MiniStatCard extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+
+    if (onTap == null) {
+      return card;
+    }
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: radius,
+        splashColor: Colors.white.withOpacity(0.25),
+        highlightColor: Colors.white.withOpacity(0.12),
+        child: card,
       ),
     );
   }

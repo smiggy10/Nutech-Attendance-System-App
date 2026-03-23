@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:nutech_app/services/adminn8n.dart';
 import 'package:nutech_app/theme/app_theme.dart';
+import 'package:nutech_app/widgets/admin_report_top_bar.dart';
 import 'package:nutech_app/widgets/nutech_background.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
@@ -133,6 +134,11 @@ class _AdminLateAbsencesScreenState extends State<AdminLateAbsencesScreen> {
         child: SafeArea(
           child: Column(
             children: [
+              AdminReportTopBar(
+                onBack: () => Navigator.of(context).pop(),
+                onExport: _exportReport,
+                exportBusy: _isExporting,
+              ),
               Expanded(
                 child: SingleChildScrollView(
                   padding: const EdgeInsets.symmetric(vertical: 10),
@@ -224,7 +230,6 @@ class _AdminLateAbsencesScreenState extends State<AdminLateAbsencesScreen> {
                   ),
                 ),
               ),
-              _buildBottomActions(),
             ],
           ),
         ),
@@ -312,60 +317,6 @@ class _AdminLateAbsencesScreenState extends State<AdminLateAbsencesScreen> {
             fontSize: 18,
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildBottomActions() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 0, 20, 18),
-      child: Row(
-        children: [
-          Expanded(
-            child: SizedBox(
-              height: 52,
-              child: ElevatedButton(
-                onPressed: _isExporting ? null : _exportReport,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.teal,
-                  foregroundColor: Colors.white,
-                  elevation: 8,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
-                child: Text(
-                  _isExporting ? 'Exporting...' : 'Export Report',
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w800,
-                    fontSize: 16,
-                  ),
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: SizedBox(
-              height: 52,
-              child: ElevatedButton(
-                onPressed: () => Navigator.pop(context),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFE6E7EA),
-                  foregroundColor: const Color(0xFF5B5F66),
-                  elevation: 4,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
-                child: const Text(
-                  'Back',
-                  style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
-                ),
-              ),
-            ),
-          ),
-        ],
       ),
     );
   }

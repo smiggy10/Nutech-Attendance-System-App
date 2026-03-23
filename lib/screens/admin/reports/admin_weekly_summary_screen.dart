@@ -5,7 +5,10 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:nutech_app/services/adminn8n.dart';
 import 'package:nutech_app/theme/app_theme.dart';
+import 'package:nutech_app/widgets/admin_report_top_bar.dart';
 import 'package:nutech_app/widgets/nutech_background.dart';
+
+import 'admin_weekly_summary_detail_screen.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
@@ -20,10 +23,16 @@ class AdminWeeklySummaryScreen extends StatefulWidget {
 }
 
 class _AdminWeeklySummaryScreenState extends State<AdminWeeklySummaryScreen> {
-  DateTimeRange _selectedRange = DateTimeRange(
-    start: _startOfWeek(DateTime.now()),
-    end: _endOfWeek(DateTime.now()),
-  );
+  /// Default: last 7 calendar days ending **today in Manila (PHT)** — same idea as daily report.
+  static DateTimeRange _defaultRangeManila() {
+    const manilaOffset = Duration(hours: 8);
+    final ph = DateTime.now().toUtc().add(manilaOffset);
+    final end = DateTime(ph.year, ph.month, ph.day);
+    final start = end.subtract(const Duration(days: 6));
+    return DateTimeRange(start: start, end: end);
+  }
+
+  DateTimeRange _selectedRange = _defaultRangeManila();
 
   late Future<AdminWeeklySummaryData> _weeklyData;
   AdminWeeklySummaryData? _lastLoadedReport;
@@ -33,16 +42,6 @@ class _AdminWeeklySummaryScreenState extends State<AdminWeeklySummaryScreen> {
   void initState() {
     super.initState();
     _weeklyData = _fetchWeeklySummary();
-  }
-
-  static DateTime _startOfWeek(DateTime date) {
-    final day = date.weekday;
-    return DateTime(date.year, date.month, date.day)
-        .subtract(Duration(days: day - 1));
-  }
-
-  static DateTime _endOfWeek(DateTime date) {
-    return _startOfWeek(date).add(const Duration(days: 6));
   }
 
   Future<AdminWeeklySummaryData> _fetchWeeklySummary() async {
@@ -80,13 +79,31 @@ class _AdminWeeklySummaryScreenState extends State<AdminWeeklySummaryScreen> {
     }
   }
 
+  /// Opens detail: Total→roster, Present→presentEntries, Late→lateEntries, Absent→absentEntries.
+  void _openWeeklyDetail(
+    BuildContext context,
+    AdminWeeklySummaryData data,
+    String periodLabel,
+    WeeklySummaryDetailKind kind,
+  ) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => AdminWeeklySummaryDetailScreen(
+          kind: kind,
+          periodLabel: periodLabel,
+          data: data,
+        ),
+      ),
+    );
+  }
+
   Future<void> _exportReport() async {
     final report = _lastLoadedReport;
 
-    if (report == null || report.summaryRows.isEmpty) {
+    if (report == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('No weekly summary available to export.'),
+          content: Text('No summary data to export yet.'),
         ),
       );
       return;
@@ -98,16 +115,20 @@ class _AdminWeeklySummaryScreenState extends State<AdminWeeklySummaryScreen> {
 
     try {
       final csvRows = <List<dynamic>>[
-        ['Weekly Summary Report'],
+        ['Summary report'],
         ['Start', report.start],
         ['End', report.end],
         ['Total Employees', report.totalEmployees],
         ['Present', report.presentCount],
         ['Late', report.lateCount],
         ['Absent', report.absentCount],
+        ['Total attendance logs', report.totalAttendanceLogs],
+        ['Total hours worked', report.totalHoursWorked],
+        ['Total overtime hours', report.totalOvertimeHours],
+        ['Missing time-out logs', report.missingTimeOutLogs],
         [],
         ['Metric', 'Value'],
-        ...report.summaryRows.map((row) => [row.left, row.right]),
+        ...report.displaySummaryRows.map((row) => [row.left, row.right]),
       ];
 
       final csvText = csv.encode(csvRows);
@@ -120,8 +141,8 @@ class _AdminWeeklySummaryScreenState extends State<AdminWeeklySummaryScreen> {
       await SharePlus.instance.share(
         ShareParams(
           files: [XFile(file.path)],
-          subject: 'Weekly Summary Report - ${report.start} to ${report.end}',
-          text: 'Weekly Summary Report - ${report.start} to ${report.end}',
+          subject: 'Summary report - ${report.start} to ${report.end}',
+          text: 'Summary report - ${report.start} to ${report.end}',
         ),
       );
     } catch (e) {
@@ -151,6 +172,11 @@ class _AdminWeeklySummaryScreenState extends State<AdminWeeklySummaryScreen> {
         child: SafeArea(
           child: Column(
             children: [
+              AdminReportTopBar(
+                onBack: () => Navigator.of(context).pop(),
+                onExport: _exportReport,
+                exportBusy: _isExporting,
+              ),
               Expanded(
                 child: SingleChildScrollView(
                   padding: const EdgeInsets.symmetric(vertical: 10),
@@ -172,34 +198,7 @@ class _AdminWeeklySummaryScreenState extends State<AdminWeeklySummaryScreen> {
                         ),
                       ),
                       const SizedBox(height: 10),
-                      Column(
-                        children: [
-                          Divider(
-                            color: Colors.black.withOpacity(0.15),
-                            thickness: 1,
-                            height: 1,
-                          ),
-                          Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            child: Center(
-                              child: Text(
-                                'Weekly Summary Report',
-                                style: TextStyle(
-                                  fontSize: 26,
-                                  fontWeight: FontWeight.w800,
-                                  color: Colors.black.withOpacity(0.8),
-                                ),
-                              ),
-                            ),
-                          ),
-                          Divider(
-                            color: Colors.black.withOpacity(0.15),
-                            thickness: 1,
-                            height: 1,
-                          ),
-                        ],
-                      ),
+                      _buildTitleSection(),
                       const SizedBox(height: 24),
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -217,7 +216,7 @@ class _AdminWeeklySummaryScreenState extends State<AdminWeeklySummaryScreen> {
                                 if (snapshot.connectionState ==
                                     ConnectionState.waiting) {
                                   return const Padding(
-                                    padding: EdgeInsets.only(top: 120),
+                                    padding: EdgeInsets.only(top: 50),
                                     child: CircularProgressIndicator(
                                       color: AppTheme.teal,
                                     ),
@@ -225,45 +224,60 @@ class _AdminWeeklySummaryScreenState extends State<AdminWeeklySummaryScreen> {
                                 }
 
                                 if (snapshot.hasError) {
-                                  return _buildStatusMessage(
-                                    'Could not connect to database',
-                                  );
-                                }
-
-                                final dataPackage = snapshot.data;
-                                if (dataPackage == null ||
-                                    dataPackage.summaryRows.isEmpty) {
                                   return Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.stretch,
                                     children: [
                                       _buildStatsRow(
-                                        total: '0',
-                                        p: '0',
-                                        l: '0',
-                                        a: '0',
+                                        context: context,
+                                        periodLabel: rangeText,
+                                        data: null,
+                                        total: '—',
+                                        p: '—',
+                                        l: '—',
+                                        a: '—',
                                       ),
                                       const SizedBox(height: 14),
-                                      _buildSectionDivider('Weekly Totals'),
-                                      const SizedBox(height: 10),
-                                      _buildEmptyStateCard(
-                                        'No records found for this period',
+                                      _buildStatusMessage(
+                                        'Could not load summary.\n${snapshot.error}',
                                       ),
                                     ],
                                   );
                                 }
 
+                                final data = snapshot.data;
+                                if (data == null) {
+                                  return _buildStatusMessage(
+                                    'No data returned for this range.',
+                                  );
+                                }
+
+                                final emptyRange = !data.hasMeaningfulData;
+
                                 return Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.stretch,
                                   children: [
                                     _buildStatsRow(
-                                      total:
-                                          dataPackage.totalEmployees.toString(),
-                                      p: dataPackage.presentCount.toString(),
-                                      l: dataPackage.lateCount.toString(),
-                                      a: dataPackage.absentCount.toString(),
+                                      context: context,
+                                      periodLabel: rangeText,
+                                      data: data,
+                                      total: data.totalEmployees.toString(),
+                                      p: data.presentCount.toString(),
+                                      l: data.lateCount.toString(),
+                                      a: data.absentCount.toString(),
                                     ),
                                     const SizedBox(height: 14),
-                                    _buildSectionDivider('Weekly Totals'),
+                                    _buildSectionDivider('Period summary'),
                                     const SizedBox(height: 10),
-                                    _TotalsCard(rows: dataPackage.summaryRows),
+                                    _TotalsCard(rows: data.displaySummaryRows),
+                                    if (emptyRange) ...[
+                                      const SizedBox(height: 16),
+                                      _buildInfoBanner(
+                                        'No attendance in this date range, or your n8n workflow is not returning counts. '
+                                        'The workflow for GET /webhook/admin/weekly-summary must aggregate from your database for the selected start/end dates (see docs/n8n_summary_report_prompt.md).',
+                                      ),
+                                    ],
                                   ],
                                 );
                               },
@@ -275,7 +289,6 @@ class _AdminWeeklySummaryScreenState extends State<AdminWeeklySummaryScreen> {
                   ),
                 ),
               ),
-              _buildBottomActions(),
             ],
           ),
         ),
@@ -283,31 +296,74 @@ class _AdminWeeklySummaryScreenState extends State<AdminWeeklySummaryScreen> {
     );
   }
 
-  Widget _buildEmptyStateCard(String message) {
-    return _TableCard(
-      child: Container(
-        height: 240,
-        alignment: Alignment.center,
-        child: Text(
-          message,
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            color: Colors.black.withOpacity(0.4),
-            fontWeight: FontWeight.w600,
-            fontSize: 18,
+  Widget _buildTitleSection() {
+    return Column(
+      children: [
+        Divider(
+          color: Colors.black.withOpacity(0.15),
+          thickness: 1,
+          height: 1,
+        ),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          child: Center(
+            child: Text(
+              'Summary report',
+              style: TextStyle(
+                fontSize: 26,
+                fontWeight: FontWeight.w800,
+                color: Colors.black.withOpacity(0.8),
+              ),
+            ),
           ),
         ),
+        Divider(
+          color: Colors.black.withOpacity(0.15),
+          thickness: 1,
+          height: 1,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildInfoBanner(String message) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.amber.shade50,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: Colors.amber.shade200),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.info_outline, color: Colors.amber.shade800, size: 22),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              message,
+              style: TextStyle(
+                fontSize: 13,
+                height: 1.35,
+                fontWeight: FontWeight.w600,
+                color: Colors.brown.shade800,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildStatusMessage(String message) {
     return _TableCard(
-      child: Container(
-        height: 100,
-        alignment: Alignment.center,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
         child: Text(
           message,
+          textAlign: TextAlign.center,
           style: const TextStyle(
             fontWeight: FontWeight.w600,
             color: Colors.redAccent,
@@ -318,11 +374,20 @@ class _AdminWeeklySummaryScreenState extends State<AdminWeeklySummaryScreen> {
   }
 
   Widget _buildStatsRow({
+    required BuildContext context,
+    required String periodLabel,
+    required AdminWeeklySummaryData? data,
     required String total,
     required String p,
     required String l,
     required String a,
   }) {
+    final d = data;
+    void open(WeeklySummaryDetailKind kind) {
+      if (d == null) return;
+      _openWeeklyDetail(context, d, periodLabel, kind);
+    }
+
     return Row(
       children: [
         Expanded(
@@ -330,6 +395,7 @@ class _AdminWeeklySummaryScreenState extends State<AdminWeeklySummaryScreen> {
             label: 'Total\nEmployees',
             value: total,
             color: const Color(0xFF1FA651),
+            onTap: d == null ? null : () => open(WeeklySummaryDetailKind.totalEmployees),
           ),
         ),
         const SizedBox(width: 8),
@@ -338,6 +404,7 @@ class _AdminWeeklySummaryScreenState extends State<AdminWeeklySummaryScreen> {
             label: 'Present',
             value: p,
             color: const Color(0xFF148A8F),
+            onTap: d == null ? null : () => open(WeeklySummaryDetailKind.present),
           ),
         ),
         const SizedBox(width: 8),
@@ -346,6 +413,7 @@ class _AdminWeeklySummaryScreenState extends State<AdminWeeklySummaryScreen> {
             label: 'Late',
             value: l,
             color: const Color(0xFFE74C3C),
+            onTap: d == null ? null : () => open(WeeklySummaryDetailKind.late),
           ),
         ),
         const SizedBox(width: 8),
@@ -354,6 +422,7 @@ class _AdminWeeklySummaryScreenState extends State<AdminWeeklySummaryScreen> {
             label: 'Absent',
             value: a,
             color: const Color(0xFFF39C12),
+            onTap: d == null ? null : () => open(WeeklySummaryDetailKind.absent),
           ),
         ),
       ],
@@ -386,62 +455,6 @@ class _AdminWeeklySummaryScreenState extends State<AdminWeeklySummaryScreen> {
     );
   }
 
-  Widget _buildBottomActions() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 0, 20, 18),
-      child: Row(
-        children: [
-          Expanded(
-            child: SizedBox(
-              height: 52,
-              child: ElevatedButton(
-                onPressed: _isExporting ? null : _exportReport,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.teal,
-                  foregroundColor: Colors.white,
-                  elevation: 8,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
-                child: Text(
-                  _isExporting ? 'Exporting...' : 'Export Report',
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w800,
-                    fontSize: 16,
-                  ),
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: SizedBox(
-              height: 52,
-              child: ElevatedButton(
-                onPressed: () => Navigator.pop(context),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFE6E7EA),
-                  foregroundColor: const Color(0xFF5B5F66),
-                  elevation: 4,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
-                child: const Text(
-                  'Back',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w800,
-                    fontSize: 16,
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 }
 
 class _FilterCard extends StatelessWidget {
@@ -508,20 +521,23 @@ class _MiniStatCard extends StatelessWidget {
     required this.label,
     required this.value,
     required this.color,
+    this.onTap,
   });
 
   final String label;
   final String value;
   final Color color;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    final radius = BorderRadius.circular(10);
+    final card = Container(
       height: 80,
       padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
         color: color,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: radius,
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.16),
@@ -555,6 +571,21 @@ class _MiniStatCard extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+
+    if (onTap == null) {
+      return card;
+    }
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: radius,
+        splashColor: Colors.white.withOpacity(0.25),
+        highlightColor: Colors.white.withOpacity(0.12),
+        child: card,
       ),
     );
   }
