@@ -129,7 +129,11 @@ class _AdminMonitorPageState extends State<AdminMonitorPage> {
 
   String _to12Hour(int hour, int minute) {
     final suffix = hour >= 12 ? 'PM' : 'AM';
-    final hour12 = hour == 0 ? 12 : hour > 12 ? hour - 12 : hour;
+    final hour12 = hour == 0
+        ? 12
+        : hour > 12
+        ? hour - 12
+        : hour;
     return '$hour12:${minute.toString().padLeft(2, '0')} $suffix';
   }
 
@@ -166,14 +170,45 @@ class _AdminMonitorPageState extends State<AdminMonitorPage> {
       return _isThisWeek(activity.attendanceDate);
     }).toList();
 
-    return filtered.map((activity) {
+    // Group activities by employee and date
+    final Map<String, List<AdminMonitorActivity>> grouped = {};
+
+    for (final activity in filtered) {
+      final key = '${activity.userId}_${activity.attendanceDate}';
+      if (!grouped.containsKey(key)) {
+        grouped[key] = [];
+      }
+      grouped[key]!.add(activity);
+    }
+
+    // Create display items from grouped activities
+    return grouped.entries.map((entry) {
+      final activities = entry.value;
+      final firstActivity = activities.first;
+
+      // Find clock-in and clock-out times
+      String? clockInTime;
+      String? clockOutTime;
+
+      for (final activity in activities) {
+        final status = _mapStatus(activity.status);
+        if (status == _MonitorStatus.clockedIn && clockInTime == null) {
+          clockInTime = _formatUtcTime(activity.actionTime);
+        } else if (status == _MonitorStatus.clockedOut &&
+            clockOutTime == null) {
+          clockOutTime = _formatUtcTime(activity.actionTime);
+        }
+      }
+
       return _MonitorItem(
-        name: activity.fullName.isNotEmpty
-            ? activity.fullName
-            : activity.userId,
-        site: activity.userId,
-        status: _mapStatus(activity.status),
-        timeText: _buildTimeText(activity),
+        name: firstActivity.fullName.isNotEmpty
+            ? firstActivity.fullName
+            : firstActivity.userId,
+        site: firstActivity.userId,
+        status: _mapStatus(firstActivity.status),
+        timeText: _buildTimeText(firstActivity),
+        clockInTime: clockInTime,
+        clockOutTime: clockOutTime,
       );
     }).toList();
   }
@@ -496,12 +531,16 @@ class _MonitorItem {
     required this.site,
     required this.status,
     required this.timeText,
+    this.clockInTime,
+    this.clockOutTime,
   });
 
   final String name;
   final String site;
   final _MonitorStatus status;
   final String timeText;
+  final String? clockInTime;
+  final String? clockOutTime;
 }
 
 class _EmployeeRow extends StatelessWidget {
@@ -548,12 +587,46 @@ class _EmployeeRow extends StatelessWidget {
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              _StatusPill(status: item.status),
+              if (item.clockInTime != null && item.clockOutTime != null)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.green.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        'In: ${item.clockInTime}',
+                        style: const TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.green,
+                        ),
+                      ),
+                      Text(
+                        'Out: ${item.clockOutTime}',
+                        style: const TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.orange,
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              else
+                _StatusPill(status: item.status),
               const SizedBox(height: 6),
-              Text(
-                item.timeText,
-                style: const TextStyle(fontWeight: FontWeight.w800),
-              ),
+              if (item.clockInTime == null || item.clockOutTime == null)
+                Text(
+                  item.timeText,
+                  style: const TextStyle(fontWeight: FontWeight.w800),
+                ),
             ],
           ),
         ],
