@@ -4,8 +4,7 @@ import 'package:http/http.dart' as http;
 
 /// Base URL of your n8n instance.
 const String kN8nBaseUrl = String.fromEnvironment(
-  'N8N_BASE_URL',
-  defaultValue: 'https://smiggyn8n.app.n8n.cloud',
+  'N8N_BASE_URL',  defaultValue: 'https://topotypical-rhomboidally-shawana.ngrok-free.dev',
 );
 
 bool get isN8nConfigured {
@@ -32,8 +31,6 @@ class N8nWebhooks {
 
   static const String userProfile = '/webhook/user/profile';
   static const String userLogs = '/webhook/user/logs';
-  // --- NEW: Added the User Stats Webhook ---
-  static const String userStats = '/webhook/user/stats'; 
 }
 
 class N8nApi {
@@ -192,17 +189,13 @@ class N8nApi {
     );
   }
 
-  // --- NEW: Added the getUserStats method ---
+  /// Backward-compatible alias used by some profile/stat screens.
+  /// Current n8n setup exposes user stats through the same `user/logs` webhook
+  /// (`data.summary`), so this delegates to [getUserLogs].
   static Future<Map<String, dynamic>> getUserStats({
     required String identifier,
   }) {
-    return _postJson(
-      N8nWebhooks.userStats,
-      {
-        'userId': identifier,
-      },
-      throwOnNon2xx: false,
-    );
+    return getUserLogs(identifier: identifier);
   }
 
   static Future<Map<String, dynamic>> resendOtp({
