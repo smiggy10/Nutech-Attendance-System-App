@@ -9,14 +9,16 @@ class EmployeeProfileCard extends StatelessWidget {
   const EmployeeProfileCard({
     super.key,
     required this.profile,
+    this.stats, // <-- ADDED: Accept the stats object
     this.showLogoutButton = false,
     this.onLogout,
   }) : assert(
-          !showLogoutButton || onLogout != null,
-          'onLogout is required when showLogoutButton is true',
-        );
+         !showLogoutButton || onLogout != null,
+         'onLogout is required when showLogoutButton is true',
+       );
 
   final UserProfile profile;
+  final UserStats? stats; // <-- ADDED: Hold the stats data
   final bool showLogoutButton;
   final VoidCallback? onLogout;
 
@@ -140,6 +142,126 @@ class EmployeeProfileCard extends StatelessWidget {
             icon: Icons.calendar_month_outlined,
             label: 'birthdate',
             value: display(profile.birthdate),
+          ),
+          const SizedBox(height: 24),
+          const Row(
+            children: [
+              Expanded(child: Divider()),
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 10),
+                child: Text(
+                  'ATTENDANCE SUMMARY',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.black26,
+                    letterSpacing: 1.2,
+                  ),
+                ),
+              ),
+              Expanded(child: Divider()),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.grey.withOpacity(0.05),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.grey.withOpacity(0.1)),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Text(
+                        // --- UPDATED: Total Hours ---
+                        stats != null ? stats!.totalHours.toStringAsFixed(1) : '0.0',
+                        style: TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.w900,
+                          color: AppTheme.teal,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Total Hours\nWorked',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  width: 1,
+                  height: 40,
+                  color: Colors.grey.withOpacity(0.3),
+                ),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Text(
+                        // --- UPDATED: Lates ---
+                        stats != null ? stats!.lates.toString() : '0',
+                        style: const TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.w900,
+                          color: Colors.orange,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Late',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  width: 1,
+                  height: 40,
+                  color: Colors.grey.withOpacity(0.3),
+                ),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Text(
+                        // --- UPDATED: Absences ---
+                        stats != null ? stats!.absences.toString() : '0',
+                        style: const TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.w900,
+                          color: Colors.red,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Absences',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
           if (showLogoutButton) ...[
             const SizedBox(height: 24),

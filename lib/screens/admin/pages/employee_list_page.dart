@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../models/admin_employee_summary.dart';
 import '../../../services/n8n_api.dart';
 import '../../../theme/app_theme.dart';
-import 'admin_employee_profile_page.dart';
+import '../../../screens/home/pages/profile_page.dart';
 
 class EmployeeListPage extends StatefulWidget {
   const EmployeeListPage({super.key});
@@ -56,9 +56,7 @@ class _EmployeeListPageState extends State<EmployeeListPage> {
             list.add(AdminEmployeeSummary.fromJson(item));
           } else if (item is Map) {
             list.add(
-              AdminEmployeeSummary.fromJson(
-                Map<String, dynamic>.from(item),
-              ),
+              AdminEmployeeSummary.fromJson(Map<String, dynamic>.from(item)),
             );
           }
         }
@@ -100,10 +98,7 @@ class _EmployeeListPageState extends State<EmployeeListPage> {
               const Expanded(
                 child: Text(
                   'Employee List',
-                  style: TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.w800,
-                  ),
+                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
                 ),
               ),
             ],
@@ -203,16 +198,18 @@ class _EmployeeListPageState extends State<EmployeeListPage> {
             child: InkWell(
               borderRadius: BorderRadius.circular(14),
               onTap: () {
+                // --- UPDATED: Passing targetUserId to reuse ProfilePage ---
                 Navigator.of(context).push(
                   MaterialPageRoute<void>(
-                    builder: (_) => AdminEmployeeProfilePage(
-                      userId: emp.userId,
-                    ),
+                    builder: (_) => ProfilePage(targetUserId: emp.userId),
                   ),
                 );
               },
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 12,
+                ),
                 child: Row(
                   children: [
                     _EmployeeAvatar(url: emp.profileImageUrl),

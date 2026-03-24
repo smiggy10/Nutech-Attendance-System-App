@@ -1,37 +1,76 @@
 import 'package:flutter/material.dart';
 
 import '../../auth/login_screen.dart';
+import '../../../services/n8n_api.dart'; // Ensure N8nApi is imported
 import '../../../services/user_profile_service.dart';
 import '../../../services/user_session.dart';
 import '../../../theme/app_theme.dart';
 import '../../../widgets/employee_profile_card.dart';
 
 class ProfilePage extends StatefulWidget {
-  const ProfilePage({super.key});
+  // ADDED: targetUserId allows this page to be reused by the Admin side
+  final String? targetUserId;
+
+  const ProfilePage({super.key, this.targetUserId});
 
   @override
   State<ProfilePage> createState() => _ProfilePageState();
 }
 
 class _ProfilePageState extends State<ProfilePage> {
-  late Future<UserProfile?> _future;
+  late Future<Map<String, dynamic>> _future;
 
   @override
   void initState() {
     super.initState();
-    _future = UserProfileService.fetchCurrentUserProfile();
+    _future = _fetchEverything();
+  }
+
+  // UPDATED: Now uses targetUserId if provided, otherwise defaults to current session
+  Future<Map<String, dynamic>> _fetchEverything() async {
+    final String? effectiveId = widget.targetUserId ?? UserSession.loginIdentifier;
+
+    if (effectiveId == null || effectiveId.isEmpty) {
+      return {
+        'profile': null,
+        'stats': const UserStats(totalHours: 0, lates: 0, absences: 0),
+      };
+    }
+
+    final results = await Future.wait([
+      _fetchProfileById(effectiveId),
+      UserProfileService.fetchUserStats(effectiveId),
+    ]);
+
+    return {
+      'profile': results[0] as UserProfile?,
+      'stats': results[1] as UserStats,
+    };
+  }
+
+  // NEW: Helper to fetch any profile by a specific ID (Standardizing the API call)
+  Future<UserProfile?> _fetchProfileById(String userId) async {
+    try {
+      final response = await N8nApi.getUserProfile(identifier: userId);
+      if (response['success'] == true && response['data'] != null) {
+        return UserProfile.fromJson(Map<String, dynamic>.from(response['data']));
+      }
+    } catch (e) {
+      debugPrint('Error fetching profile by ID: $e');
+    }
+    return null;
   }
 
   Future<void> _reload() async {
     setState(() {
-      _future = UserProfileService.fetchCurrentUserProfile();
+      _future = _fetchEverything();
     });
     await _future;
   }
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<UserProfile?>(
+    return FutureBuilder<Map<String, dynamic>>(
       future: _future,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
@@ -42,7 +81,10 @@ class _ProfilePageState extends State<ProfilePage> {
           return _buildErrorState(snapshot.error.toString());
         }
 
-        final profile = snapshot.data;
+        final data = snapshot.data;
+        final profile = data?['profile'] as UserProfile?;
+        final stats = data?['stats'] as UserStats?;
+        
         if (profile == null) {
           return _buildEmptyState();
         }
@@ -55,8 +97,10 @@ class _ProfilePageState extends State<ProfilePage> {
             padding: const EdgeInsets.fromLTRB(18, 55, 18, 22),
             child: EmployeeProfileCard(
               profile: profile,
-              showLogoutButton: true,
-              onLogout: () => _confirmLogout(context),
+              stats: stats,
+              // UPDATED: Hide logout button if an Admin is viewing this (targetUserId is not null)
+              showLogoutButton: widget.targetUserId == null,
+              onLogout: widget.targetUserId == null ? () => _confirmLogout(context) : null,
             ),
           ),
         );
@@ -99,7 +143,7 @@ class _ProfilePageState extends State<ProfilePage> {
             ),
             const SizedBox(height: 8),
             const Text(
-              'No employee profile was returned from Airtable for the current user.',
+              'No employee profile was returned from Airtable.',
               textAlign: TextAlign.center,
               style: TextStyle(color: Colors.grey),
             ),

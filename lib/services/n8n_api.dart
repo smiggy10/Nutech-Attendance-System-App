@@ -32,6 +32,8 @@ class N8nWebhooks {
 
   static const String userProfile = '/webhook/user/profile';
   static const String userLogs = '/webhook/user/logs';
+  // --- NEW: Added the User Stats Webhook ---
+  static const String userStats = '/webhook/user/stats'; 
 }
 
 class N8nApi {
@@ -185,6 +187,19 @@ class N8nApi {
       N8nWebhooks.userLogs,
       queryParameters: {
         'identifier': identifier,
+      },
+      throwOnNon2xx: false,
+    );
+  }
+
+  // --- NEW: Added the getUserStats method ---
+  static Future<Map<String, dynamic>> getUserStats({
+    required String identifier,
+  }) {
+    return _postJson(
+      N8nWebhooks.userStats,
+      {
+        'userId': identifier,
       },
       throwOnNon2xx: false,
     );
