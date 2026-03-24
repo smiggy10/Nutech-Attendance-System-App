@@ -91,12 +91,44 @@ class _SignupScreenState extends State<SignupScreen> {
     }
   }
 
-  Future<void> _pickAndCropProfile() async {
+  /// Helper to show selection dialog between Camera and Gallery
+  void _showImageSourceDialog() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => SafeArea(
+        child: Wrap(
+          children: [
+            ListTile(
+              leading: const Icon(Icons.camera_alt_rounded, color: AppTheme.teal),
+              title: const Text('Take a Photo'),
+              onTap: () {
+                Navigator.pop(context);
+                _pickAndCropProfile(ImageSource.camera);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library_rounded, color: AppTheme.teal),
+              title: const Text('Choose from Gallery'),
+              onTap: () {
+                Navigator.pop(context);
+                _pickAndCropProfile(ImageSource.gallery);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _pickAndCropProfile(ImageSource source) async {
     try {
-      debugPrint('Starting image picker...');
+      debugPrint('Starting image picker with source: $source');
 
       final XFile? picked = await _picker.pickImage(
-        source: ImageSource.gallery,
+        source: source,
         imageQuality: 92,
       );
 
@@ -109,7 +141,7 @@ class _SignupScreenState extends State<SignupScreen> {
       debugPrint('Running on web: $kIsWeb');
 
       if (kIsWeb) {
-        debugWebCropper(); // Add debug logging for web
+        debugWebCropper();
       }
 
       debugPrint('Starting image cropper...');
@@ -177,7 +209,7 @@ class _SignupScreenState extends State<SignupScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: Colors.red, // Red background for warning messages
+        backgroundColor: Colors.red,
       ),
     );
   }
@@ -201,13 +233,10 @@ class _SignupScreenState extends State<SignupScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // ✅ Removed 'Scaffold' here because NutechBackground now provides it.
-    // This prevents the background from moving when the keyboard opens.
     return NutechBackground(
       child: SafeArea(
         child: Column(
           children: [
-            // 🔙 Reusable back button
             Align(
               alignment: Alignment.centerLeft,
               child: IconButton(
@@ -217,7 +246,6 @@ class _SignupScreenState extends State<SignupScreen> {
             ),
             Expanded(
               child: SingleChildScrollView(
-                // KeyboardDismissBehavior ensures keyboard hides when you scroll
                 keyboardDismissBehavior:
                     ScrollViewKeyboardDismissBehavior.onDrag,
                 padding: const EdgeInsets.fromLTRB(24, 0, 24, 40),
@@ -229,7 +257,7 @@ class _SignupScreenState extends State<SignupScreen> {
 
                     Center(
                       child: InkWell(
-                        onTap: _pickAndCropProfile,
+                        onTap: _showImageSourceDialog,
                         borderRadius: BorderRadius.circular(999),
                         child: Container(
                           width: 92,
@@ -253,14 +281,14 @@ class _SignupScreenState extends State<SignupScreen> {
                           child: ClipOval(
                             child: (_webImage != null || _profileFile != null)
                                 ? (kIsWeb
-                                      ? Image.network(
-                                          _webImage!,
-                                          fit: BoxFit.cover,
-                                        )
-                                      : Image.file(
-                                          _profileFile!,
-                                          fit: BoxFit.cover,
-                                        ))
+                                    ? Image.network(
+                                        _webImage!,
+                                        fit: BoxFit.cover,
+                                      )
+                                    : Image.file(
+                                        _profileFile!,
+                                        fit: BoxFit.cover,
+                                      ))
                                 : Image.asset(
                                     'assets/images/addimage.png',
                                     fit: BoxFit.cover,
@@ -457,7 +485,6 @@ class _SignupScreenState extends State<SignupScreen> {
                         );
                       },
                     ),
-                    // Extra padding at the bottom for better scroll feel on 6.67" screens
                     const SizedBox(height: 20),
                   ],
                 ),
