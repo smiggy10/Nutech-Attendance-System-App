@@ -86,7 +86,7 @@ class AdminReportsPage extends StatelessWidget {
                         ),
                         const SizedBox(height: 12),
                         _ReportButton(
-                          label: 'Summary report',
+                          label: 'Weekly Summary Report',
                           onTap: () => Navigator.pushNamed(
                             context,
                             AdminWeeklySummaryScreen.route,

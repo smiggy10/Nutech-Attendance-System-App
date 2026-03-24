@@ -24,16 +24,13 @@ class AdminDailyAttendanceScreen extends StatefulWidget {
 
 class _AdminDailyAttendanceScreenState
     extends State<AdminDailyAttendanceScreen> {
-  /// Philippines (PHT) calendar date for the report query — avoids “wrong day” vs UTC.
-  static DateTime _manilaDateOnlyNow() {
-    final ph = DateTime.now().toUtc().add(_manilaOffsetFromUtc);
-    return DateTime(ph.year, ph.month, ph.day);
+  /// Current date for the report query.
+  static DateTime _currentDateOnly() {
+    final now = DateTime.now();
+    return DateTime(now.year, now.month, now.day);
   }
 
-  /// Asia/Manila is UTC+8 year-round (no DST).
-  static const Duration _manilaOffsetFromUtc = Duration(hours: 8);
-
-  DateTime _selectedDate = _manilaDateOnlyNow();
+  DateTime _selectedDate = _currentDateOnly();
   late Future<AdminDailyAttendanceReportData> _attendanceData;
   AdminDailyAttendanceReportData? _lastLoadedReport;
   bool _isExporting = false;
@@ -90,27 +87,38 @@ class _AdminDailyAttendanceScreenState
     );
   }
 
-  /// Parses ISO timestamps and shows clock time in **Manila (PHT, UTC+8)**.
+  /// Parses timestamps and displays them as-is from Airtable.
   String _formatTime(String? raw) {
     if (raw == null || raw.trim().isEmpty) return '--';
+    final trimmed = raw.trim();
 
-    try {
-      final instantUtc = DateTime.parse(raw.trim()).toUtc();
-      final manila = instantUtc.add(_manilaOffsetFromUtc);
-      final hour = manila.hour;
-      final minute = manila.minute;
+    // Already formatted with AM/PM — return as-is
+    if (trimmed.contains('AM') || trimmed.contains('PM')) return trimmed;
 
-      final suffix = hour >= 12 ? 'PM' : 'AM';
-      final hour12 = hour == 0
-          ? 12
-          : hour > 12
-              ? hour - 12
-              : hour;
-
-      return '$hour12:${minute.toString().padLeft(2, '0')} $suffix';
-    } catch (_) {
-      return '--';
+    // ISO datetime string: extract T<HH>:<MM> directly (avoids all timezone issues)
+    // Works for both "2026-03-18T08:00:00.000Z" and "2026-03-18T08:00:00"
+    final isoMatch = RegExp(r'T(\d{2}):(\d{2})').firstMatch(trimmed);
+    if (isoMatch != null) {
+      final hour = int.parse(isoMatch.group(1)!);
+      final minute = int.parse(isoMatch.group(2)!);
+      return _to12Hour(hour, minute);
     }
+
+    // Plain time string like "14:46" or "08:00:00"
+    final simpleMatch = RegExp(r'^(\d{1,2}):(\d{2})').firstMatch(trimmed);
+    if (simpleMatch != null) {
+      final hour = int.parse(simpleMatch.group(1)!);
+      final minute = int.parse(simpleMatch.group(2)!);
+      return _to12Hour(hour, minute);
+    }
+
+    return trimmed;
+  }
+
+  String _to12Hour(int hour, int minute) {
+    final suffix = hour >= 12 ? 'PM' : 'AM';
+    final hour12 = hour == 0 ? 12 : hour > 12 ? hour - 12 : hour;
+    return '$hour12:${minute.toString().padLeft(2, '0')} $suffix';
   }
 
   Future<void> _exportReport() async {
@@ -118,9 +126,7 @@ class _AdminDailyAttendanceScreenState
 
     if (report == null || report.rows.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('No report data available to export.'),
-        ),
+        const SnackBar(content: Text('No report data available to export.')),
       );
       return;
     }
@@ -168,11 +174,9 @@ class _AdminDailyAttendanceScreenState
     } catch (e) {
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Failed to export CSV: $e'),
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Failed to export CSV: $e')));
     } finally {
       if (!mounted) return;
       setState(() {
@@ -264,8 +268,9 @@ class _AdminDailyAttendanceScreenState
                                           child: Text(
                                             'Failed to load report data.',
                                             style: TextStyle(
-                                              color:
-                                                  Colors.black.withOpacity(0.55),
+                                              color: Colors.black.withOpacity(
+                                                0.55,
+                                              ),
                                               fontWeight: FontWeight.w600,
                                               fontSize: 16,
                                             ),
@@ -299,8 +304,9 @@ class _AdminDailyAttendanceScreenState
                                           child: Text(
                                             'No records found for this period',
                                             style: TextStyle(
-                                              color: Colors.black
-                                                  .withOpacity(0.5),
+                                              color: Colors.black.withOpacity(
+                                                0.5,
+                                              ),
                                               fontWeight: FontWeight.w600,
                                               fontSize: 16,
                                             ),
@@ -333,8 +339,9 @@ class _AdminDailyAttendanceScreenState
                                           child: Text(
                                             "No records found for this period",
                                             style: TextStyle(
-                                              color: Colors.black
-                                                  .withOpacity(0.5),
+                                              color: Colors.black.withOpacity(
+                                                0.5,
+                                              ),
                                               fontWeight: FontWeight.w600,
                                               fontSize: 16,
                                             ),
@@ -383,29 +390,18 @@ class _AdminDailyAttendanceScreenState
   Widget _buildTitleSection() {
     return Column(
       children: [
-        Divider(
-          color: Colors.black.withOpacity(0.15),
-          thickness: 1,
-          height: 1,
-        ),
+        Divider(color: Colors.black.withOpacity(0.15), thickness: 1, height: 1),
         Container(
           width: double.infinity,
           padding: const EdgeInsets.symmetric(vertical: 12),
           child: const Center(
             child: Text(
               'Daily Attendance Report',
-              style: TextStyle(
-                fontSize: 26,
-                fontWeight: FontWeight.w800,
-              ),
+              style: TextStyle(fontSize: 26, fontWeight: FontWeight.w800),
             ),
           ),
         ),
-        Divider(
-          color: Colors.black.withOpacity(0.15),
-          thickness: 1,
-          height: 1,
-        ),
+        Divider(color: Colors.black.withOpacity(0.15), thickness: 1, height: 1),
       ],
     );
   }
@@ -414,26 +410,17 @@ class _AdminDailyAttendanceScreenState
     return Row(
       children: [
         Expanded(
-          child: Divider(
-            color: Colors.black.withOpacity(0.25),
-            thickness: 1,
-          ),
+          child: Divider(color: Colors.black.withOpacity(0.25), thickness: 1),
         ),
         const Padding(
           padding: EdgeInsets.symmetric(horizontal: 10),
           child: Text(
             'Daily Report',
-            style: TextStyle(
-              fontWeight: FontWeight.w800,
-              color: Colors.black,
-            ),
+            style: TextStyle(fontWeight: FontWeight.w800, color: Colors.black),
           ),
         ),
         Expanded(
-          child: Divider(
-            color: Colors.black.withOpacity(0.25),
-            thickness: 1,
-          ),
+          child: Divider(color: Colors.black.withOpacity(0.25), thickness: 1),
         ),
       ],
     );
@@ -461,7 +448,9 @@ class _AdminDailyAttendanceScreenState
             label: 'Present',
             value: p,
             color: AppTheme.teal,
-            onTap: report == null ? null : () => open(DailyAttendanceDetailKind.present),
+            onTap: report == null
+                ? null
+                : () => open(DailyAttendanceDetailKind.present),
           ),
         ),
         const SizedBox(width: 10),
@@ -470,7 +459,9 @@ class _AdminDailyAttendanceScreenState
             label: 'Late',
             value: l,
             color: const Color(0xFFE74C3C),
-            onTap: report == null ? null : () => open(DailyAttendanceDetailKind.late),
+            onTap: report == null
+                ? null
+                : () => open(DailyAttendanceDetailKind.late),
           ),
         ),
         const SizedBox(width: 10),
@@ -479,7 +470,9 @@ class _AdminDailyAttendanceScreenState
             label: 'Absent',
             value: a,
             color: const Color(0xFFF39C12),
-            onTap: report == null ? null : () => open(DailyAttendanceDetailKind.absent),
+            onTap: report == null
+                ? null
+                : () => open(DailyAttendanceDetailKind.absent),
           ),
         ),
         const SizedBox(width: 10),
@@ -488,7 +481,9 @@ class _AdminDailyAttendanceScreenState
             label: 'Overtime',
             value: o,
             color: const Color(0xFF5DADE2),
-            onTap: report == null ? null : () => open(DailyAttendanceDetailKind.overtime),
+            onTap: report == null
+                ? null
+                : () => open(DailyAttendanceDetailKind.overtime),
           ),
         ),
       ],
@@ -502,9 +497,7 @@ class _AdminDailyAttendanceScreenState
         constraints: const BoxConstraints(minWidth: 520),
         child: Table(
           defaultVerticalAlignment: TableCellVerticalAlignment.middle,
-          border: TableBorder.all(
-            color: Colors.black.withOpacity(0.18),
-          ),
+          border: TableBorder.all(color: Colors.black.withOpacity(0.18)),
           columnWidths: const {
             0: FlexColumnWidth(2.2),
             1: FlexColumnWidth(1.2),
@@ -512,10 +505,7 @@ class _AdminDailyAttendanceScreenState
             3: FlexColumnWidth(0.9),
             4: FlexColumnWidth(1.2),
           },
-          children: [
-            _headerRow(),
-            ...rows.map((r) => _dataRow(r)),
-          ],
+          children: [_headerRow(), ...rows.map((r) => _dataRow(r))],
         ),
       ),
     );
@@ -523,16 +513,11 @@ class _AdminDailyAttendanceScreenState
 
   TableRow _headerRow() {
     return TableRow(
-      decoration: const BoxDecoration(
-        color: Color(0xFFE7E7E7),
-      ),
+      decoration: const BoxDecoration(color: Color(0xFFE7E7E7)),
       children: ['Employee', 'Time In', 'Time Out', 'Hours', 'Status']
           .map(
             (t) => Padding(
-              padding: const EdgeInsets.symmetric(
-                vertical: 10,
-                horizontal: 10,
-              ),
+              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
               child: Text(
                 t,
                 style: const TextStyle(fontWeight: FontWeight.w800),
@@ -561,10 +546,7 @@ class _AdminDailyAttendanceScreenState
   }
 
   Widget _cell(Widget child) {
-    return Padding(
-      padding: const EdgeInsets.all(10),
-      child: child,
-    );
+    return Padding(padding: const EdgeInsets.all(10), child: child);
   }
 }
 
@@ -586,9 +568,7 @@ class _FilterCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(
-          color: Colors.black.withOpacity(0.10),
-        ),
+        border: Border.all(color: Colors.black.withOpacity(0.10)),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.10),
@@ -608,10 +588,7 @@ class _FilterCard extends StatelessWidget {
           InkWell(
             onTap: onTap,
             child: Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 12,
-                vertical: 6,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
                 color: AppTheme.tealSoft,
                 borderRadius: BorderRadius.circular(8),
@@ -717,9 +694,7 @@ class _TableCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(
-          color: Colors.black.withOpacity(0.10),
-        ),
+        border: Border.all(color: Colors.black.withOpacity(0.10)),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.10),

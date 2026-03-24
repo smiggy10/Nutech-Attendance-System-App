@@ -102,24 +102,35 @@ class _AdminMonitorPageState extends State<AdminMonitorPage> {
 
   String _formatUtcTime(String? raw) {
     if (raw == null || raw.trim().isEmpty) return '-';
+    final trimmed = raw.trim();
 
-    try {
-      final dt = DateTime.parse(raw).toUtc();
-      final hour = dt.hour;
-      final minute = dt.minute;
+    // Already formatted with AM/PM — return as-is
+    if (trimmed.contains('AM') || trimmed.contains('PM')) return trimmed;
 
-      final suffix = hour >= 12 ? 'PM' : 'AM';
-      final hour12 = hour == 0
-          ? 12
-          : hour > 12
-          ? hour - 12
-          : hour;
-
-      final mm = minute.toString().padLeft(2, '0');
-      return '$hour12:$mm $suffix';
-    } catch (_) {
-      return '-';
+    // ISO datetime string: extract T<HH>:<MM> directly (avoids all timezone issues)
+    // Works for both "2026-03-18T08:00:00.000Z" and "2026-03-18T08:00:00"
+    final isoMatch = RegExp(r'T(\d{2}):(\d{2})').firstMatch(trimmed);
+    if (isoMatch != null) {
+      final hour = int.parse(isoMatch.group(1)!);
+      final minute = int.parse(isoMatch.group(2)!);
+      return _to12Hour(hour, minute);
     }
+
+    // Plain time string like "14:46" or "08:00:00"
+    final simpleMatch = RegExp(r'^(\d{1,2}):(\d{2})').firstMatch(trimmed);
+    if (simpleMatch != null) {
+      final hour = int.parse(simpleMatch.group(1)!);
+      final minute = int.parse(simpleMatch.group(2)!);
+      return _to12Hour(hour, minute);
+    }
+
+    return trimmed;
+  }
+
+  String _to12Hour(int hour, int minute) {
+    final suffix = hour >= 12 ? 'PM' : 'AM';
+    final hour12 = hour == 0 ? 12 : hour > 12 ? hour - 12 : hour;
+    return '$hour12:${minute.toString().padLeft(2, '0')} $suffix';
   }
 
   String _buildTimeText(AdminMonitorActivity activity) {

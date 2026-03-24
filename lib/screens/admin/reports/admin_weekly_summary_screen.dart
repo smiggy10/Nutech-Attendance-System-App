@@ -23,16 +23,15 @@ class AdminWeeklySummaryScreen extends StatefulWidget {
 }
 
 class _AdminWeeklySummaryScreenState extends State<AdminWeeklySummaryScreen> {
-  /// Default: last 7 calendar days ending **today in Manila (PHT)** — same idea as daily report.
-  static DateTimeRange _defaultRangeManila() {
-    const manilaOffset = Duration(hours: 8);
-    final ph = DateTime.now().toUtc().add(manilaOffset);
-    final end = DateTime(ph.year, ph.month, ph.day);
+  /// Default: last 7 calendar days ending today.
+  static DateTimeRange _defaultRange() {
+    final now = DateTime.now();
+    final end = DateTime(now.year, now.month, now.day);
     final start = end.subtract(const Duration(days: 6));
     return DateTimeRange(start: start, end: end);
   }
 
-  DateTimeRange _selectedRange = _defaultRangeManila();
+  DateTimeRange _selectedRange = _defaultRange();
 
   late Future<AdminWeeklySummaryData> _weeklyData;
   AdminWeeklySummaryData? _lastLoadedReport;
@@ -102,9 +101,7 @@ class _AdminWeeklySummaryScreenState extends State<AdminWeeklySummaryScreen> {
 
     if (report == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('No summary data to export yet.'),
-        ),
+        const SnackBar(content: Text('No summary data to export yet.')),
       );
       return;
     }
@@ -115,7 +112,7 @@ class _AdminWeeklySummaryScreenState extends State<AdminWeeklySummaryScreen> {
 
     try {
       final csvRows = <List<dynamic>>[
-        ['Summary report'],
+        ['Weekly Summary Report'],
         ['Start', report.start],
         ['End', report.end],
         ['Total Employees', report.totalEmployees],
@@ -141,16 +138,16 @@ class _AdminWeeklySummaryScreenState extends State<AdminWeeklySummaryScreen> {
       await SharePlus.instance.share(
         ShareParams(
           files: [XFile(file.path)],
-          subject: 'Summary report - ${report.start} to ${report.end}',
-          text: 'Summary report - ${report.start} to ${report.end}',
+          subject: 'Weekly Summary Report - ${report.start} to ${report.end}',
+          text: 'Weekly Summary Report - ${report.start} to ${report.end}',
         ),
       );
     } catch (e) {
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to export CSV: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Failed to export CSV: $e')));
     } finally {
       if (!mounted) return;
       setState(() {
@@ -299,11 +296,7 @@ class _AdminWeeklySummaryScreenState extends State<AdminWeeklySummaryScreen> {
   Widget _buildTitleSection() {
     return Column(
       children: [
-        Divider(
-          color: Colors.black.withOpacity(0.15),
-          thickness: 1,
-          height: 1,
-        ),
+        Divider(color: Colors.black.withOpacity(0.15), thickness: 1, height: 1),
         Container(
           width: double.infinity,
           padding: const EdgeInsets.symmetric(vertical: 12),
@@ -318,11 +311,7 @@ class _AdminWeeklySummaryScreenState extends State<AdminWeeklySummaryScreen> {
             ),
           ),
         ),
-        Divider(
-          color: Colors.black.withOpacity(0.15),
-          thickness: 1,
-          height: 1,
-        ),
+        Divider(color: Colors.black.withOpacity(0.15), thickness: 1, height: 1),
       ],
     );
   }
@@ -395,7 +384,9 @@ class _AdminWeeklySummaryScreenState extends State<AdminWeeklySummaryScreen> {
             label: 'Total\nEmployees',
             value: total,
             color: const Color(0xFF1FA651),
-            onTap: d == null ? null : () => open(WeeklySummaryDetailKind.totalEmployees),
+            onTap: d == null
+                ? null
+                : () => open(WeeklySummaryDetailKind.totalEmployees),
           ),
         ),
         const SizedBox(width: 8),
@@ -404,7 +395,9 @@ class _AdminWeeklySummaryScreenState extends State<AdminWeeklySummaryScreen> {
             label: 'Present',
             value: p,
             color: const Color(0xFF148A8F),
-            onTap: d == null ? null : () => open(WeeklySummaryDetailKind.present),
+            onTap: d == null
+                ? null
+                : () => open(WeeklySummaryDetailKind.present),
           ),
         ),
         const SizedBox(width: 8),
@@ -422,7 +415,9 @@ class _AdminWeeklySummaryScreenState extends State<AdminWeeklySummaryScreen> {
             label: 'Absent',
             value: a,
             color: const Color(0xFFF39C12),
-            onTap: d == null ? null : () => open(WeeklySummaryDetailKind.absent),
+            onTap: d == null
+                ? null
+                : () => open(WeeklySummaryDetailKind.absent),
           ),
         ),
       ],
@@ -433,10 +428,7 @@ class _AdminWeeklySummaryScreenState extends State<AdminWeeklySummaryScreen> {
     return Row(
       children: [
         Expanded(
-          child: Divider(
-            color: Colors.black.withOpacity(0.25),
-            thickness: 1,
-          ),
+          child: Divider(color: Colors.black.withOpacity(0.25), thickness: 1),
         ),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 10),
@@ -446,15 +438,11 @@ class _AdminWeeklySummaryScreenState extends State<AdminWeeklySummaryScreen> {
           ),
         ),
         Expanded(
-          child: Divider(
-            color: Colors.black.withOpacity(0.25),
-            thickness: 1,
-          ),
+          child: Divider(color: Colors.black.withOpacity(0.25), thickness: 1),
         ),
       ],
     );
   }
-
 }
 
 class _FilterCard extends StatelessWidget {
@@ -642,20 +630,20 @@ class _TableCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(10),
-        decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.9),
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: Colors.black.withOpacity(0.12)),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.1),
-              blurRadius: 10,
-              offset: const Offset(0, 6),
-            ),
-          ],
+    width: double.infinity,
+    padding: const EdgeInsets.all(10),
+    decoration: BoxDecoration(
+      color: Colors.white.withOpacity(0.9),
+      borderRadius: BorderRadius.circular(10),
+      border: Border.all(color: Colors.black.withOpacity(0.12)),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withOpacity(0.1),
+          blurRadius: 10,
+          offset: const Offset(0, 6),
         ),
-        child: child,
-      );
+      ],
+    ),
+    child: child,
+  );
 }
