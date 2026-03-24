@@ -28,7 +28,8 @@ class _ProfilePageState extends State<ProfilePage> {
 
   // UPDATED: Now uses targetUserId if provided, otherwise defaults to current session
   Future<Map<String, dynamic>> _fetchEverything() async {
-    final String? effectiveId = widget.targetUserId ?? UserSession.loginIdentifier;
+    final String? effectiveId =
+        widget.targetUserId ?? UserSession.loginIdentifier;
 
     if (effectiveId == null || effectiveId.isEmpty) {
       return {
@@ -53,7 +54,9 @@ class _ProfilePageState extends State<ProfilePage> {
     try {
       final response = await N8nApi.getUserProfile(identifier: userId);
       if (response['success'] == true && response['data'] != null) {
-        return UserProfile.fromJson(Map<String, dynamic>.from(response['data']));
+        return UserProfile.fromJson(
+          Map<String, dynamic>.from(response['data']),
+        );
       }
     } catch (e) {
       debugPrint('Error fetching profile by ID: $e');
@@ -84,7 +87,7 @@ class _ProfilePageState extends State<ProfilePage> {
         final data = snapshot.data;
         final profile = data?['profile'] as UserProfile?;
         final stats = data?['stats'] as UserStats?;
-        
+
         if (profile == null) {
           return _buildEmptyState();
         }
@@ -92,16 +95,48 @@ class _ProfilePageState extends State<ProfilePage> {
         return RefreshIndicator(
           onRefresh: _reload,
           color: AppTheme.teal,
-          child: SingleChildScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.fromLTRB(18, 55, 18, 22),
-            child: EmployeeProfileCard(
-              profile: profile,
-              stats: stats,
-              // UPDATED: Hide logout button if an Admin is viewing this (targetUserId is not null)
-              showLogoutButton: widget.targetUserId == null,
-              onLogout: widget.targetUserId == null ? () => _confirmLogout(context) : null,
-            ),
+          child: Column(
+            children: [
+              // Back button for admin navigation - matching employee list design
+              if (widget.targetUserId != null)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(8, 4, 16, 8),
+                  child: Row(
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.arrow_back_rounded),
+                        color: AppTheme.teal,
+                        onPressed: () => Navigator.of(context).pop(),
+                      ),
+                      const Expanded(
+                        child: Text(
+                          'Employee Details',
+                          style: TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              // Main content
+              Expanded(
+                child: SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.fromLTRB(18, 18, 18, 22),
+                  child: EmployeeProfileCard(
+                    profile: profile,
+                    stats: stats,
+                    // UPDATED: Hide logout button if an Admin is viewing this (targetUserId is not null)
+                    showLogoutButton: widget.targetUserId == null,
+                    onLogout: widget.targetUserId == null
+                        ? () => _confirmLogout(context)
+                        : null,
+                  ),
+                ),
+              ),
+            ],
           ),
         );
       },
