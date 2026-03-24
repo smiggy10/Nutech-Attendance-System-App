@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:nutech_app/theme/app_theme.dart';
-import 'package:nutech_app/widgets/nutech_background.dart';
 import '../../../services/n8n_api.dart';
 
 // Simple utility class to track rejected employees across screens
@@ -265,19 +264,15 @@ class _PendingApprovalsPageState extends State<PendingApprovalsPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      // Removed AppBar completely to remove top navigation bar
-      body: NutechBackground(
-        bottomAsset: 'assets/images/ui/bottombackground2.png',
-        child: SafeArea(
-          child: Column(
-            children: [
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(vertical: 0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
+    return SafeArea(
+      child: Column(
+        children: [
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(vertical: 0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
                       // Branding Header - Logo now acts as the refresh trigger
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
@@ -438,33 +433,36 @@ class _PendingApprovalsPageState extends State<PendingApprovalsPage> {
                             ),
                           ),
                         ),
-                    ],
-                  ),
+                  ],
                 ),
               ),
-              
-              // Bottom Action Button (Back)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 10, 20, 18),
-                child: SizedBox(
-                  height: 52,
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: _actionInProgress.isNotEmpty ? null : () => Navigator.pop(context),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFE6E7EA),
-                      foregroundColor: const Color(0xFF5B5F66),
-                      elevation: 4,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+
+            // Bottom Action Button (Back)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 10, 20, 18),
+              child: SizedBox(
+                height: 52,
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed:
+                      _actionInProgress.isNotEmpty ? null : () => Navigator.pop(context),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFE6E7EA),
+                    foregroundColor: const Color(0xFF5B5F66),
+                    elevation: 4,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
                     ),
-                    child: const Text('Back',
-                        style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+                  ),
+                  child: const Text(
+                    'Back',
+                    style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
                   ),
                 ),
               ),
-            ],
-          ),
-        ),
+            ),
+        ],
       ),
     );
   }
