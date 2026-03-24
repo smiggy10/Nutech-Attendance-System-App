@@ -229,9 +229,9 @@ class _AdminOverviewPageState extends State<AdminOverviewPage> {
                         onTap: _isLoadingOverview
                             ? null
                             : () {
-                                Navigator.of(context).pushNamed(
-                                  AdminOverviewShell.employeesRoute,
-                                );
+                                Navigator.of(
+                                  context,
+                                ).pushNamed(AdminOverviewShell.employeesRoute);
                               },
                       ),
                       const _DividerLine(),
@@ -477,10 +477,7 @@ class _DataStatusRow extends StatelessWidget {
 
     return Material(
       color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        child: row,
-      ),
+      child: InkWell(onTap: onTap, child: row),
     );
   }
 }

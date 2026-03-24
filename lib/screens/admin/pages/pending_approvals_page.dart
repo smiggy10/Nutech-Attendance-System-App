@@ -37,6 +37,10 @@ class _PendingApprovalsPageState extends State<PendingApprovalsPage> {
   bool _loading = true;
   String? _errorText;
   final Set<String> _actionInProgress = {};
+  bool _isBulkProcessing = false;
+  int _bulkProcessed = 0;
+  int _bulkTotal = 0;
+  String? _bulkAction;
 
   @override
   void initState() {
@@ -90,7 +94,11 @@ class _PendingApprovalsPageState extends State<PendingApprovalsPage> {
     }
   }
 
-  Future<void> _handleAction(Map<String, dynamic> item, String action) async {
+  Future<bool> _performAction(
+    Map<String, dynamic> item,
+    String action, {
+    bool showSnackBar = true,
+  }) async {
     final airtableId = (item['airtableId'] ?? '').toString();
     final email = (item['email'] ?? '').toString();
     final fullName = (item['fullName'] ?? '').toString();
@@ -99,16 +107,15 @@ class _PendingApprovalsPageState extends State<PendingApprovalsPage> {
       setState(() {
         _errorText = 'Missing required fields for this registration.';
       });
-      return;
+      return false;
     }
-
-    if (_actionInProgress.isNotEmpty) return;
 
     setState(() {
       _actionInProgress.add(airtableId);
       _errorText = null;
     });
 
+    var didSucceed = false;
     try {
       final response = await N8nApi.adminAction(
         airtableId: airtableId,
@@ -117,46 +124,143 @@ class _PendingApprovalsPageState extends State<PendingApprovalsPage> {
         action: action,
       );
 
-      if (!mounted) return;
+      if (!mounted) return false;
 
       final success = response['success'] == true;
       final message = response['message']?.toString() ?? '';
+      didSucceed = success;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            message.isNotEmpty
-                ? message
-                : (action == 'Accept'
-                    ? 'Employee accepted successfully.'
-                    : 'Registration rejected successfully.'),
+      if (showSnackBar) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              message.isNotEmpty
+                  ? message
+                  : (action == 'Accept'
+                      ? 'Employee accepted successfully.'
+                      : 'Registration rejected successfully.'),
+            ),
+            backgroundColor:
+                success
+                    ? (action == 'Accept' ? Colors.green : Colors.red)
+                    : Colors.orange,
+            duration: const Duration(seconds: 2),
           ),
-          backgroundColor: action == 'Accept' ? Colors.green : Colors.red,
-          duration: const Duration(seconds: 2),
-        ),
-      );
-
-      setState(() {
-        _pending.removeWhere(
-          (item) => item['airtableId'].toString() == airtableId,
         );
-      });
+      }
 
-      if (action == 'Reject') {
-        RejectedEmployeesTracker.addRejected(airtableId);
+      if (success) {
+        setState(() {
+          _pending.removeWhere(
+            (row) => row['airtableId'].toString() == airtableId,
+          );
+        });
+
+        if (action == 'Reject') {
+          RejectedEmployeesTracker.addRejected(airtableId);
+        }
+      } else if (message.isNotEmpty) {
+        setState(() {
+          _errorText = message;
+        });
       }
     } catch (e) {
-      if (!mounted) return;
+      if (!mounted) return false;
       setState(() {
         _errorText = 'Request failed: $e';
       });
     } finally {
       if (mounted) {
         setState(() {
-          _actionInProgress.clear();
+          _actionInProgress.remove(airtableId);
         });
       }
     }
+
+    return didSucceed;
+  }
+
+  Future<void> _handleAction(Map<String, dynamic> item, String action) async {
+    if (_isBulkProcessing || _actionInProgress.isNotEmpty) return;
+    await _performAction(item, action);
+  }
+
+  Future<bool> _confirmBulkAction(String action) async {
+    final verb = action == 'Accept' ? 'accept' : 'reject';
+    final result = await showDialog<bool>(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: Text('${action} All Employees'),
+            content: Text(
+              'Are you sure you want to $verb all pending employees?',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: const Text('Cancel'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                style: FilledButton.styleFrom(
+                  backgroundColor:
+                      action == 'Accept' ? AppTheme.teal : const Color(0xFFE24B33),
+                ),
+                child: Text('$action All'),
+              ),
+            ],
+          ),
+    );
+    return result == true;
+  }
+
+  Future<void> _runBulkAction(String action) async {
+    if (_isBulkProcessing || _loading || _pending.isEmpty) return;
+
+    final confirmed = await _confirmBulkAction(action);
+    if (!confirmed || !mounted) return;
+
+    final queue = List<Map<String, dynamic>>.from(_pending);
+    final initialCount = queue.length;
+    var successCount = 0;
+
+    setState(() {
+      _isBulkProcessing = true;
+      _bulkAction = action;
+      _bulkProcessed = 0;
+      _bulkTotal = initialCount;
+      _errorText = null;
+    });
+
+    for (final item in queue) {
+      if (!mounted) return;
+      final ok = await _performAction(item, action, showSnackBar: false);
+      if (ok) successCount++;
+      if (!mounted) return;
+      setState(() {
+        _bulkProcessed += 1;
+      });
+    }
+
+    if (!mounted) return;
+    setState(() {
+      _isBulkProcessing = false;
+      _bulkAction = null;
+      _bulkProcessed = 0;
+      _bulkTotal = 0;
+    });
+
+    final failedCount = initialCount - successCount;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          failedCount == 0
+              ? '$action All completed: $successCount employee${successCount == 1 ? '' : 's'} processed.'
+              : '$action All finished: $successCount succeeded, $failedCount failed.',
+        ),
+        backgroundColor: failedCount == 0 ? Colors.green : Colors.orange,
+      ),
+    );
   }
 
   @override
@@ -245,6 +349,81 @@ class _PendingApprovalsPageState extends State<PendingApprovalsPage> {
                                   child: Text('Employees',
                                       style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
                                 ),
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: SizedBox(
+                                        height: 42,
+                                        child: ElevatedButton.icon(
+                                          onPressed: (_isBulkProcessing ||
+                                                  _actionInProgress.isNotEmpty ||
+                                                  _pending.isEmpty)
+                                              ? null
+                                              : () => _runBulkAction('Accept'),
+                                          icon: const Icon(Icons.done_all, size: 18),
+                                          label: const Text(
+                                            'Accept All',
+                                            style: TextStyle(fontWeight: FontWeight.w700),
+                                          ),
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: AppTheme.teal,
+                                            foregroundColor: Colors.white,
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius: BorderRadius.circular(10),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 10),
+                                    Expanded(
+                                      child: SizedBox(
+                                        height: 42,
+                                        child: ElevatedButton.icon(
+                                          onPressed: (_isBulkProcessing ||
+                                                  _actionInProgress.isNotEmpty ||
+                                                  _pending.isEmpty)
+                                              ? null
+                                              : () => _runBulkAction('Reject'),
+                                          icon: const Icon(Icons.clear_all, size: 18),
+                                          label: const Text(
+                                            'Reject All',
+                                            style: TextStyle(fontWeight: FontWeight.w700),
+                                          ),
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: const Color(0xFFE24B33),
+                                            foregroundColor: Colors.white,
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius: BorderRadius.circular(10),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                if (_isBulkProcessing) ...[
+                                  const SizedBox(height: 10),
+                                  LinearProgressIndicator(
+                                    value: _bulkTotal == 0
+                                        ? null
+                                        : _bulkProcessed / _bulkTotal,
+                                    color: _bulkAction == 'Accept'
+                                        ? AppTheme.teal
+                                        : const Color(0xFFE24B33),
+                                    backgroundColor: Colors.black.withOpacity(0.08),
+                                  ),
+                                  const SizedBox(height: 6),
+                                  Text(
+                                    '${_bulkAction ?? 'Processing'} ${_bulkProcessed.toString()}/${_bulkTotal.toString()}',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.black.withOpacity(0.6),
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                                const SizedBox(height: 10),
                                 ListView.separated(
                                   shrinkWrap: true,
                                   physics: const NeverScrollableScrollPhysics(),
@@ -297,14 +476,21 @@ class _PendingApprovalsPageState extends State<PendingApprovalsPage> {
     final contactNumber = (item['contactNumber'] ?? '').toString();
 
     final isProcessingThisRow = _actionInProgress.contains(airtableId);
-    final isAnyActionInProgress = _actionInProgress.isNotEmpty;
+    final isAnyActionInProgress = _actionInProgress.isNotEmpty || _isBulkProcessing;
 
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(10),
         border: Border.all(color: Colors.black.withOpacity(0.08)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -321,11 +507,20 @@ class _PendingApprovalsPageState extends State<PendingApprovalsPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(fullName,
-                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
-                    const SizedBox(height: 2),
-                    Text(email, style: const TextStyle(fontSize: 13, color: AppTheme.muted)),
-                    const SizedBox(height: 4),
+                    Text(
+                      fullName.isNotEmpty ? fullName : '—',
+                      style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      email.isNotEmpty ? email : '—',
+                      style: const TextStyle(fontSize: 13, color: AppTheme.muted),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 5),
                     Row(
                       children: [
                         const Icon(Icons.phone_outlined, size: 14, color: AppTheme.muted),
@@ -349,7 +544,7 @@ class _PendingApprovalsPageState extends State<PendingApprovalsPage> {
             children: [
               Expanded(
                 child: SizedBox(
-                  height: 40,
+                  height: 42,
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppTheme.teal,
@@ -381,7 +576,7 @@ class _PendingApprovalsPageState extends State<PendingApprovalsPage> {
               const SizedBox(width: 10),
               Expanded(
                 child: SizedBox(
-                  height: 40,
+                  height: 42,
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFFE24B33),

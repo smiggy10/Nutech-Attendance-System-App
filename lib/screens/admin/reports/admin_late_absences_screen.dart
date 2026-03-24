@@ -68,9 +68,7 @@ class _AdminLateAbsencesScreenState extends State<AdminLateAbsencesScreen> {
 
     if (report == null || report.rows.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('No report data available to export.'),
-        ),
+        const SnackBar(content: Text('No report data available to export.')),
       );
       return;
     }
@@ -87,13 +85,7 @@ class _AdminLateAbsencesScreenState extends State<AdminLateAbsencesScreen> {
         ['Total Absent', report.totalAbsent],
         [],
         ['Employee', 'Late', 'Absent'],
-        ...report.rows.map(
-          (row) => [
-            row.employee,
-            row.late,
-            row.absent,
-          ],
-        ),
+        ...report.rows.map((row) => [row.employee, row.late, row.absent]),
       ];
 
       final csvText = csv.encode(csvRows);
@@ -113,9 +105,9 @@ class _AdminLateAbsencesScreenState extends State<AdminLateAbsencesScreen> {
     } catch (e) {
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to export CSV: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Failed to export CSV: $e')));
     } finally {
       if (!mounted) return;
       setState(() {
@@ -250,10 +242,7 @@ class _AdminLateAbsencesScreenState extends State<AdminLateAbsencesScreen> {
           1: FlexColumnWidth(1.0),
           2: FlexColumnWidth(1.0),
         },
-        children: [
-          _headerRow(),
-          for (final r in data.rows) _dataRow(r),
-        ],
+        children: [_headerRow(), for (final r in data.rows) _dataRow(r)],
       ),
     );
   }
@@ -334,17 +323,11 @@ class _AdminLateAbsencesScreenState extends State<AdminLateAbsencesScreen> {
         ),
         Padding(
           padding: EdgeInsets.symmetric(vertical: 12, horizontal: 10),
-          child: Text(
-            'Late',
-            style: TextStyle(fontWeight: FontWeight.w800),
-          ),
+          child: Text('Late', style: TextStyle(fontWeight: FontWeight.w800)),
         ),
         Padding(
           padding: EdgeInsets.symmetric(vertical: 12, horizontal: 10),
-          child: Text(
-            'Absent',
-            style: TextStyle(fontWeight: FontWeight.w800),
-          ),
+          child: Text('Absent', style: TextStyle(fontWeight: FontWeight.w800)),
         ),
       ],
     );
@@ -355,21 +338,7 @@ class _AdminLateAbsencesScreenState extends State<AdminLateAbsencesScreen> {
       children: [
         Padding(
           padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
-          child: Row(
-            children: [
-              const CircleAvatar(
-                radius: 18,
-                backgroundColor: Colors.black,
-                child: CircleAvatar(
-                  radius: 17,
-                  backgroundColor: Colors.white,
-                  child: Icon(Icons.person, color: Colors.black54),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(child: Text(r.employee)),
-            ],
-          ),
+          child: Text(r.employee),
         ),
         Padding(
           padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
