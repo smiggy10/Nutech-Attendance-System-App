@@ -2,6 +2,7 @@ import '../../../services/adminn8n.dart';
 import '../../../services/n8n_api.dart';
 import 'package:flutter/material.dart';
 import '../../../theme/app_theme.dart';
+import 'attendance_details_page.dart';
 import 'admin_overview_shell.dart';
 import 'pending_approvals_page.dart';
 
@@ -166,6 +167,17 @@ class _AdminOverviewPageState extends State<AdminOverviewPage> {
                             ? '...'
                             : _onTimeToday.toString(),
                         isDanger: false,
+                        onTap: _isLoadingOverview
+                            ? null
+                            : () {
+                                Navigator.of(context).push(
+                                  MaterialPageRoute<void>(
+                                    builder: (_) => const AttendanceDetailsPage(
+                                      type: 'on_time',
+                                    ),
+                                  ),
+                                );
+                              },
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -177,6 +189,16 @@ class _AdminOverviewPageState extends State<AdminOverviewPage> {
                             : _lateToday.toString(),
                         isDanger: true,
                         backgroundColor: const Color(0xFFE74C3C),
+                        onTap: _isLoadingOverview
+                            ? null
+                            : () {
+                                Navigator.of(context).push(
+                                  MaterialPageRoute<void>(
+                                    builder: (_) =>
+                                        const AttendanceDetailsPage(type: 'late'),
+                                  ),
+                                );
+                              },
                       ),
                     ),
                   ],
@@ -271,19 +293,21 @@ class _MiniStat extends StatelessWidget {
     required this.value,
     required this.isDanger,
     this.backgroundColor,
+    this.onTap,
   });
 
   final String title;
   final String value;
   final bool isDanger;
   final Color? backgroundColor;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     final bg =
         backgroundColor ?? (isDanger ? const Color(0xFFE24B33) : AppTheme.teal);
 
-    return Container(
+    final card = Container(
       height: 78,
       padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
       decoration: BoxDecoration(
@@ -321,6 +345,19 @@ class _MiniStat extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+
+    if (onTap == null) return card;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(14),
+        splashColor: Colors.white.withOpacity(0.18),
+        highlightColor: Colors.white.withOpacity(0.08),
+        child: card,
       ),
     );
   }
