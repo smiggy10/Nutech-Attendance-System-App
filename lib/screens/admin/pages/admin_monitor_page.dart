@@ -406,28 +406,6 @@ class _AdminMonitorPageState extends State<AdminMonitorPage> {
                   ],
                 ),
 
-                const SizedBox(height: 14),
-
-                Row(
-                  children: [
-                    Expanded(
-                      child: _StatCard(
-                        title: 'On Time Today',
-
-                        value: '0',
-
-                        background: AppTheme.teal,
-                      ),
-                    ),
-
-                    const SizedBox(width: 14),
-
-                    Expanded(
-                      child: Container(), // Placeholder for balance
-                    ),
-                  ],
-                ),
-
                 const SizedBox(height: 20),
 
                 Container(
