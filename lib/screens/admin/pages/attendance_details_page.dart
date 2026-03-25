@@ -24,12 +24,18 @@ class _AttendanceDetailsPageState extends State<AttendanceDetailsPage> {
 
   String get _title {
     switch (widget.type) {
-      case 'on_time': return 'On Time Today';
-      case 'late': return 'Late Today';
-      case 'currently_clocked_in': return 'Currently Clocked In';
-      case 'clocked_out_today': return 'Clocked Out Today';
-      case 'missing_time_out': return 'Missing Time-Out';
-      default: return 'Attendance Details';
+      case 'on_time':
+        return 'On Time Today';
+      case 'late':
+        return 'Late Today';
+      case 'currently_clocked_in':
+        return 'Currently Clocked In';
+      case 'clocked_out_today':
+        return 'Clocked Out Today';
+      case 'missing_time_out':
+        return 'Missing Time-Out';
+      default:
+        return 'Attendance Details';
     }
   }
 
@@ -48,12 +54,14 @@ class _AttendanceDetailsPageState extends State<AttendanceDetailsPage> {
 
     try {
       final response = await N8nApi.postAttendanceDetails(type: widget.type);
-      
+
       if (!mounted) return;
       if (response['success'] == true) {
         final List<dynamic> data = response['data'] ?? [];
         setState(() {
-          _employees = data.map((json) => AttendanceEmployee.fromJson(json)).toList();
+          _employees = data
+              .map((json) => AttendanceEmployee.fromJson(json))
+              .toList();
           _isLoading = false;
         });
       } else {
@@ -71,49 +79,57 @@ class _AttendanceDetailsPageState extends State<AttendanceDetailsPage> {
     }
   }
 
+  // Check if this screen needs NutechBackground
+  bool get _needsBackground =>
+      widget.type == 'currently_clocked_in' ||
+      widget.type == 'clocked_out_today' ||
+      widget.type == 'missing_time_out';
+
   @override
   Widget build(BuildContext context) {
-    return NutechBackground(
-      child: Scaffold(
-        backgroundColor: Colors.transparent,
-        body: SafeArea(
-          child: Container(
-            width: double.infinity,
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(8, 4, 16, 8),
-                  child: Row(
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.arrow_back_rounded),
-                        color: _nutechGreen, // Back button is now Green
-                        onPressed: () => Navigator.of(context).pop(),
-                      ),
-                      Expanded(
-                        child: Text(
-                          _title,
-                          style: const TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.w900,
-                            color: Colors.black, // Title text is now Black
-                          ),
+    Widget content = Scaffold(
+      backgroundColor: Colors.transparent,
+      body: SafeArea(
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(8, 4, 16, 8),
+                child: Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.arrow_back_rounded),
+                      color: _nutechGreen, // Back button is now Green
+                      onPressed: () => Navigator.of(context).pop(),
+                    ),
+                    Expanded(
+                      child: Text(
+                        _title,
+                        style: const TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w900,
+                          color: Colors.black, // Title text is now Black
                         ),
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
-                Expanded(
-                  child: _buildBodyContent(),
-                ),
-              ],
-            ),
+              ),
+              Expanded(child: _buildBodyContent()),
+            ],
           ),
         ),
       ),
     );
+
+    // Only apply NutechBackground to screens that need it
+    if (_needsBackground) {
+      return NutechBackground(child: content);
+    }
+    return content;
   }
 
   Widget _buildBodyContent() {
@@ -130,9 +146,9 @@ class _AttendanceDetailsPageState extends State<AttendanceDetailsPage> {
             const SizedBox(height: 16),
             Text(_error!, style: const TextStyle(color: Colors.red)),
             TextButton(
-              onPressed: _fetchData, 
-              child: Text('Retry', style: TextStyle(color: _nutechGreen))
-            )
+              onPressed: _fetchData,
+              child: Text('Retry', style: TextStyle(color: _nutechGreen)),
+            ),
           ],
         ),
       );
@@ -196,7 +212,8 @@ class _AttendanceDetailsPageState extends State<AttendanceDetailsPage> {
                             style: const TextStyle(
                               fontWeight: FontWeight.w700,
                               fontSize: 13,
-                              color: Colors.black54, // Secondary text remains subtle
+                              color: Colors
+                                  .black54, // Secondary text remains subtle
                             ),
                           ),
                           const SizedBox(height: 8),
@@ -222,9 +239,9 @@ class _AttendanceDetailsPageState extends State<AttendanceDetailsPage> {
                             style: TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w800,
-                              color: widget.type == 'missing_time_out' 
-                                      ? const Color(0xFFE74C3C) 
-                                      : Colors.black87,
+                              color: widget.type == 'missing_time_out'
+                                  ? const Color(0xFFE74C3C)
+                                  : Colors.black87,
                             ),
                           ),
                         ],
