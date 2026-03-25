@@ -1,13 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../theme/app_theme.dart';
 import '../../../services/adminn8n.dart';
-
-// ✅ STEP 1: FIX THE IMPORT PATH
-// If your file is in lib/widgets/nutech_background.dart, use this:
-import '../../../../widgets/nutech_background.dart'; 
-
-// If the above still shows a red underline, try this one instead:
-// import '../../../widgets/nutech_background.dart';
+import '../../../../widgets/nutech_background.dart';
 
 class AdminMonitorPage extends StatefulWidget {
   const AdminMonitorPage({super.key});
@@ -190,134 +184,131 @@ class _AdminMonitorPageState extends State<AdminMonitorPage> {
     final items = _displayItems;
     final double cardWidth = (MediaQuery.of(context).size.width - 54) / 2;
 
-    // ✅ INTEGRATED NUTECHBACKGROUND HERE
-    return NutechBackground(
-      child: RefreshIndicator(
-        onRefresh: _loadMonitorData,
-        color: AppTheme.teal,
-        child: SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.symmetric(vertical: 10),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Container(
-                  margin: const EdgeInsets.only(bottom: 10),
-                  alignment: Alignment.center,
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxHeight: 100),
-                    child: Image.asset('assets/images/branding/nutechlogo1.png', fit: BoxFit.contain),
-                  ),
+    return RefreshIndicator(
+      onRefresh: _loadMonitorData,
+      color: AppTheme.teal,
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Container(
+                margin: const EdgeInsets.only(bottom: 10),
+                alignment: Alignment.center,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxHeight: 100),
+                  child: Image.asset('assets/images/branding/nutechlogo1.png', fit: BoxFit.contain),
                 ),
               ),
-              const SizedBox(height: 10),
-              Divider(color: Colors.black.withOpacity(0.15), thickness: 1, height: 1),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                child: const Center(
-                  child: Text(
-                    'Attendance Monitoring',
-                    style: TextStyle(fontSize: 26, fontWeight: FontWeight.w800, color: Colors.black),
-                  ),
+            ),
+            const SizedBox(height: 10),
+            Divider(color: Colors.black.withOpacity(0.15), thickness: 1, height: 1),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              child: const Center(
+                child: Text(
+                  'Attendance Monitoring',
+                  style: TextStyle(fontSize: 26, fontWeight: FontWeight.w800, color: Colors.black),
                 ),
               ),
-              Divider(color: Colors.black.withOpacity(0.15), thickness: 1, height: 1),
-              const SizedBox(height: 16),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Column(
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _StatCard(
-                            title: 'Currently Clocked In',
-                            value: _isLoading ? '...' : _currentlyClockedIn.toString(),
-                            background: AppTheme.teal,
-                            onTap: () => _navigateToDetail('Currently Clocked In'),
-                          ),
+            ),
+            Divider(color: Colors.black.withOpacity(0.15), thickness: 1, height: 1),
+            const SizedBox(height: 16),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _StatCard(
+                          title: 'Currently Clocked In',
+                          value: _isLoading ? '...' : _currentlyClockedIn.toString(),
+                          background: AppTheme.teal,
+                          onTap: () => _navigateToDetail('Currently Clocked In'),
                         ),
-                        const SizedBox(width: 14),
-                        Expanded(
-                          child: _StatCard(
-                            title: 'Clocked Out Today',
-                            value: _isLoading ? '...' : _clockedOutToday.toString(),
-                            background: const Color(0xFFFFA826),
-                            onTap: () => _navigateToDetail('Clocked Out Today'),
-                          ),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: _StatCard(
+                          title: 'Clocked Out Today',
+                          value: _isLoading ? '...' : _clockedOutToday.toString(),
+                          background: const Color(0xFFFFA826),
+                          onTap: () => _navigateToDetail('Clocked Out Today'),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                  Center(
+                    child: SizedBox(
+                      width: cardWidth,
+                      child: _StatCard(
+                        title: 'Missing Time-Out',
+                        value: _isLoading ? '...' : _missingTimeOut.toString(),
+                        background: const Color(0xFFE74C3C),
+                        onTap: () => _navigateToDetail('Missing Time-Out'),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.9),
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(color: Colors.black.withOpacity(0.05)),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.05),
+                          blurRadius: 20,
+                          offset: const Offset(0, 10),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 14),
-                    Center(
-                      child: SizedBox(
-                        width: cardWidth,
-                        child: _StatCard(
-                          title: 'Missing Time-Out',
-                          value: _isLoading ? '...' : _missingTimeOut.toString(),
-                          background: const Color(0xFFE74C3C),
-                          onTap: () => _navigateToDetail('Missing Time-Out'),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        _Segmented(
+                          left: 'Today',
+                          right: 'This Week',
+                          index: _tab,
+                          onChanged: (i) => setState(() => _tab = i),
                         ),
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.9),
-                        borderRadius: BorderRadius.circular(24),
-                        border: Border.all(color: Colors.black.withOpacity(0.05)),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.05),
-                            blurRadius: 20,
-                            offset: const Offset(0, 10),
-                          ),
-                        ],
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          _Segmented(
-                            left: 'Today',
-                            right: 'This Week',
-                            index: _tab,
-                            onChanged: (i) => setState(() => _tab = i),
-                          ),
-                          const SizedBox(height: 20),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 4),
-                            child: Text(
-                              "Recent Activity Logs (${items.length})",
-                              style: TextStyle(
-                                fontWeight: FontWeight.w900,
-                                color: AppTheme.ink.withOpacity(0.7),
-                                fontSize: 16,
-                              ),
+                        const SizedBox(height: 20),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                          child: Text(
+                            "Recent Activity Logs (${items.length})",
+                            style: TextStyle(
+                              fontWeight: FontWeight.w900,
+                              color: AppTheme.ink.withOpacity(0.7),
+                              fontSize: 16,
                             ),
                           ),
-                          const SizedBox(height: 12),
-                          if (_isLoading)
-                            const _LoadingState()
-                          else if (items.isEmpty)
-                            const _EmptyState()
-                          else
-                            ...items.map((e) => Padding(
-                                  padding: const EdgeInsets.only(bottom: 12),
-                                  child: _EmployeeRow(item: e, isTranslucent: true),
-                                )),
-                        ],
-                      ),
+                        ),
+                        const SizedBox(height: 12),
+                        if (_isLoading)
+                          const _LoadingState()
+                        else if (items.isEmpty)
+                          const _EmptyState()
+                        else
+                          ...items.map((e) => Padding(
+                                padding: const EdgeInsets.only(bottom: 12),
+                                child: _EmployeeRow(item: e, isTranslucent: true),
+                              )),
+                      ],
                     ),
-                    const SizedBox(height: 18),
-                  ],
-                ),
+                  ),
+                  const SizedBox(height: 18),
+                ],
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
