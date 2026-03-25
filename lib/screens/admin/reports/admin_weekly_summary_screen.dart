@@ -324,7 +324,7 @@ class _AdminWeeklySummaryScreenState extends State<AdminWeeklySummaryScreen> {
           padding: const EdgeInsets.symmetric(vertical: 12),
           child: Center(
             child: Text(
-              'Summary report',
+              'Weekly Summary Report',
               style: TextStyle(
                 fontSize: 26,
                 fontWeight: FontWeight.w800,
