@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../theme/app_theme.dart';
 import '../../../services/adminn8n.dart';
 import '../../../../widgets/nutech_background.dart';
+import 'attendance_details_page.dart'; // --- NEW: Imported our live page ---
 
 class AdminMonitorPage extends StatefulWidget {
   const AdminMonitorPage({super.key});
@@ -52,27 +53,27 @@ class _AdminMonitorPageState extends State<AdminMonitorPage> {
     }
   }
 
-  // --- NAVIGATION LOGIC ---
+  // --- UPDATED NAVIGATION LOGIC ---
   void _navigateToDetail(String title) {
-    List<_MonitorItem> filteredList;
+    String type = '';
     
+    // Map the card title directly to our n8n filter types
     if (title == 'Currently Clocked In') {
-      filteredList = _displayItems.where((e) => e.status == _MonitorStatus.clockedIn).toList();
+      type = 'currently_clocked_in';
     } else if (title == 'Clocked Out Today') {
-      filteredList = _displayItems.where((e) => e.status == _MonitorStatus.clockedOut).toList();
-    } else {
-      filteredList = _displayItems.where((e) => e.status == _MonitorStatus.alert).toList();
+      type = 'clocked_out_today';
+    } else if (title == 'Missing Time-Out') {
+      type = 'missing_time_out';
     }
 
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => StatDetailScreen(
-          title: title,
-          items: filteredList,
+    if (type.isNotEmpty) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => AttendanceDetailsPage(type: type),
         ),
-      ),
-    );
+      );
+    }
   }
 
   // --- Date and Time Helpers ---
@@ -310,47 +311,6 @@ class _AdminMonitorPageState extends State<AdminMonitorPage> {
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-// --- DETAIL SCREEN ---
-class StatDetailScreen extends StatelessWidget {
-  final String title;
-  final List<_MonitorItem> items;
-
-  const StatDetailScreen({super.key, required this.title, required this.items});
-
-  @override
-  Widget build(BuildContext context) {
-    return NutechBackground(
-      showTopAccents: true,
-      useBrandImages: true,
-      child: Scaffold(
-        backgroundColor: Colors.transparent, 
-        appBar: AppBar(
-          title: Text(title, 
-            style: const TextStyle(fontWeight: FontWeight.w800, color: Colors.black)
-          ),
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back, color: Colors.black),
-            onPressed: () => Navigator.pop(context),
-          ),
-        ),
-        body: items.isEmpty 
-          ? const _EmptyState() 
-          : ListView.separated(
-              padding: const EdgeInsets.fromLTRB(20, 10, 20, 20),
-              itemCount: items.length,
-              separatorBuilder: (context, index) => const SizedBox(height: 12),
-              itemBuilder: (context, index) => _EmployeeRow(
-                item: items[index],
-                isTranslucent: true,
-              ),
-            ),
       ),
     );
   }

@@ -5,7 +5,7 @@ import '../../../theme/app_theme.dart';
 class AttendanceDetailsPage extends StatefulWidget {
   const AttendanceDetailsPage({super.key, required this.type});
 
-  /// Expected values: "on_time" or "late"
+  /// Expected values: "on_time", "late", "currently_clocked_in", "clocked_out_today", "missing_time_out"
   final String type;
 
   @override
@@ -18,7 +18,33 @@ class _AttendanceDetailsPageState extends State<AttendanceDetailsPage> {
   List<AttendanceEmployee> _employees = [];
 
   bool get _isLatePage => widget.type == 'late';
-  String get _title => _isLatePage ? 'Late Today' : 'On Time Today';
+
+  // --- UPDATED: Dynamic Page Title ---
+  String get _title {
+    switch (widget.type) {
+      case 'on_time': return 'On Time Today';
+      case 'late': return 'Late Today';
+      case 'currently_clocked_in': return 'Currently Clocked In';
+      case 'clocked_out_today': return 'Clocked Out Today';
+      case 'missing_time_out': return 'Missing Time-Out';
+      default: return 'Attendance Details';
+    }
+  }
+
+  // --- NEW: Dynamic Header Color based on your screenshot ---
+  Color get _headerColor {
+    switch (widget.type) {
+      case 'late': 
+      case 'missing_time_out': 
+        return const Color(0xFFE74C3C); // Red for alerts
+      case 'clocked_out_today': 
+        return Colors.orange; // Orange for clocked out
+      case 'on_time':
+      case 'currently_clocked_in':
+      default: 
+        return AppTheme.teal; // Teal for active/good status
+    }
+  }
 
   @override
   void initState() {
@@ -72,15 +98,17 @@ class _AttendanceDetailsPageState extends State<AttendanceDetailsPage> {
                   children: [
                     IconButton(
                       icon: const Icon(Icons.arrow_back_rounded),
-                      color: AppTheme.teal,
+                      // --- UPDATED: Back button matches the theme color ---
+                      color: _headerColor, 
                       onPressed: () => Navigator.of(context).pop(),
                     ),
                     Expanded(
                       child: Text(
                         _title,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.w800,
+                          color: _headerColor, // Make the title pop!
                         ),
                       ),
                     ),
@@ -99,7 +127,7 @@ class _AttendanceDetailsPageState extends State<AttendanceDetailsPage> {
 
   Widget _buildBodyContent() {
     if (_isLoading) {
-      return const Center(child: CircularProgressIndicator());
+      return Center(child: CircularProgressIndicator(color: _headerColor));
     }
 
     if (_error != null) {
@@ -130,7 +158,7 @@ class _AttendanceDetailsPageState extends State<AttendanceDetailsPage> {
 
     return RefreshIndicator(
       onRefresh: _fetchData,
-      color: AppTheme.teal,
+      color: _headerColor,
       child: ListView.builder(
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(0, 4, 0, 24),
@@ -199,7 +227,9 @@ class _AttendanceDetailsPageState extends State<AttendanceDetailsPage> {
                             style: TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w600,
-                              color: Colors.black.withOpacity(0.72),
+                              color: widget.type == 'missing_time_out' 
+                                      ? Colors.red 
+                                      : Colors.black.withOpacity(0.72),
                             ),
                           ),
                         ],
