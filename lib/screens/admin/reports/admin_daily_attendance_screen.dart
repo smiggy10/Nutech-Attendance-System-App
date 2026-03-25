@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:nutech_app/services/adminn8n.dart';
 import 'package:nutech_app/theme/app_theme.dart';
-import 'package:nutech_app/widgets/admin_report_top_bar.dart';
 import 'package:nutech_app/widgets/nutech_background.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
@@ -117,7 +116,11 @@ class _AdminDailyAttendanceScreenState
 
   String _to12Hour(int hour, int minute) {
     final suffix = hour >= 12 ? 'PM' : 'AM';
-    final hour12 = hour == 0 ? 12 : hour > 12 ? hour - 12 : hour;
+    final hour12 = hour == 0
+        ? 12
+        : hour > 12
+        ? hour - 12
+        : hour;
     return '$hour12:${minute.toString().padLeft(2, '0')} $suffix';
   }
 
@@ -195,10 +198,33 @@ class _AdminDailyAttendanceScreenState
         child: SafeArea(
           child: Column(
             children: [
-              AdminReportTopBar(
-                onBack: () => Navigator.of(context).pop(),
-                onExport: _exportReport,
-                exportBusy: _isExporting,
+              Padding(
+                padding: const EdgeInsets.fromLTRB(8, 4, 16, 8),
+                child: Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.arrow_back_rounded),
+                      color: AppTheme.teal,
+                      onPressed: () => Navigator.of(context).pop(),
+                    ),
+                    const Spacer(),
+                    if (_isExporting)
+                      const SizedBox(
+                        width: 22,
+                        height: 22,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2.2,
+                          color: AppTheme.teal,
+                        ),
+                      )
+                    else
+                      IconButton(
+                        icon: const Icon(Icons.file_download_outlined),
+                        color: AppTheme.teal,
+                        onPressed: _exportReport,
+                      ),
+                  ],
+                ),
               ),
               Expanded(
                 child: SingleChildScrollView(
