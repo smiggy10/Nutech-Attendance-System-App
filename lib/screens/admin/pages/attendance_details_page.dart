@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import '../../../services/n8n_api.dart';
 import '../../../theme/app_theme.dart';
+import '../../../../widgets/nutech_background.dart';
 
 class AttendanceDetailsPage extends StatefulWidget {
   const AttendanceDetailsPage({super.key, required this.type});
 
-  /// Expected values: "on_time", "late", "currently_clocked_in", "clocked_out_today", "missing_time_out"
   final String type;
 
   @override
@@ -19,7 +19,6 @@ class _AttendanceDetailsPageState extends State<AttendanceDetailsPage> {
 
   bool get _isLatePage => widget.type == 'late';
 
-  // --- UPDATED: Dynamic Page Title ---
   String get _title {
     switch (widget.type) {
       case 'on_time': return 'On Time Today';
@@ -31,21 +30,6 @@ class _AttendanceDetailsPageState extends State<AttendanceDetailsPage> {
     }
   }
 
-  // --- NEW: Dynamic Header Color based on your screenshot ---
-  Color get _headerColor {
-    switch (widget.type) {
-      case 'late': 
-      case 'missing_time_out': 
-        return const Color(0xFFE74C3C); // Red for alerts
-      case 'clocked_out_today': 
-        return Colors.orange; // Orange for clocked out
-      case 'on_time':
-      case 'currently_clocked_in':
-      default: 
-        return AppTheme.teal; // Teal for active/good status
-    }
-  }
-
   @override
   void initState() {
     super.initState();
@@ -53,6 +37,7 @@ class _AttendanceDetailsPageState extends State<AttendanceDetailsPage> {
   }
 
   Future<void> _fetchData() async {
+    if (!mounted) return;
     setState(() {
       _isLoading = true;
       _error = null;
@@ -61,6 +46,7 @@ class _AttendanceDetailsPageState extends State<AttendanceDetailsPage> {
     try {
       final response = await N8nApi.postAttendanceDetails(type: widget.type);
       
+      if (!mounted) return;
       if (response['success'] == true) {
         final List<dynamic> data = response['data'] ?? [];
         setState(() {
@@ -74,6 +60,7 @@ class _AttendanceDetailsPageState extends State<AttendanceDetailsPage> {
         });
       }
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _error = e.toString();
         _isLoading = false;
@@ -83,42 +70,44 @@ class _AttendanceDetailsPageState extends State<AttendanceDetailsPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      body: SafeArea(
-        child: Container(
-          width: double.infinity,
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(8, 4, 16, 8),
-                child: Row(
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.arrow_back_rounded),
-                      // --- UPDATED: Back button matches the theme color ---
-                      color: _headerColor, 
-                      onPressed: () => Navigator.of(context).pop(),
-                    ),
-                    Expanded(
-                      child: Text(
-                        _title,
-                        style: TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.w800,
-                          color: _headerColor, // Make the title pop!
+    return NutechBackground(
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        body: SafeArea(
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(8, 4, 16, 8),
+                  child: Row(
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.arrow_back_rounded),
+                        // Changed to Black for better visibility
+                        color: Colors.black, 
+                        onPressed: () => Navigator.of(context).pop(),
+                      ),
+                      Expanded(
+                        child: Text(
+                          _title,
+                          style: const TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.w900,
+                            color: Colors.black, // Forced to Black
+                          ),
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-              Expanded(
-                child: _buildBodyContent(),
-              ),
-            ],
+                Expanded(
+                  child: _buildBodyContent(),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -127,7 +116,8 @@ class _AttendanceDetailsPageState extends State<AttendanceDetailsPage> {
 
   Widget _buildBodyContent() {
     if (_isLoading) {
-      return Center(child: CircularProgressIndicator(color: _headerColor));
+      // Changed to Black to match your request
+      return const Center(child: CircularProgressIndicator(color: Colors.black));
     }
 
     if (_error != null) {
@@ -138,19 +128,19 @@ class _AttendanceDetailsPageState extends State<AttendanceDetailsPage> {
             const Icon(Icons.error_outline, color: Colors.red, size: 48),
             const SizedBox(height: 16),
             Text(_error!, style: const TextStyle(color: Colors.red)),
-            TextButton(onPressed: _fetchData, child: const Text('Retry'))
+            TextButton(onPressed: _fetchData, child: const Text('Retry', style: TextStyle(color: Colors.black)))
           ],
         ),
       );
     }
 
     if (_employees.isEmpty) {
-      return Center(
+      return const Center(
         child: Text(
           'No attendance records available.',
           style: TextStyle(
-            color: Colors.black.withOpacity(0.45),
-            fontWeight: FontWeight.w600,
+            color: Colors.black, // Forced to solid Black
+            fontWeight: FontWeight.w700,
           ),
         ),
       );
@@ -158,7 +148,7 @@ class _AttendanceDetailsPageState extends State<AttendanceDetailsPage> {
 
     return RefreshIndicator(
       onRefresh: _fetchData,
-      color: _headerColor,
+      color: Colors.black, // Refresh icon to Black
       child: ListView.builder(
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(0, 4, 0, 24),
@@ -168,9 +158,9 @@ class _AttendanceDetailsPageState extends State<AttendanceDetailsPage> {
           return Padding(
             padding: const EdgeInsets.only(bottom: 10),
             child: Material(
-              color: Colors.white,
-              elevation: 1,
-              shadowColor: Colors.black26,
+              color: Colors.white, // Solid white for better text contrast
+              elevation: 2,
+              shadowColor: Colors.black45,
               borderRadius: BorderRadius.circular(14),
               child: Padding(
                 padding: const EdgeInsets.symmetric(
@@ -189,8 +179,9 @@ class _AttendanceDetailsPageState extends State<AttendanceDetailsPage> {
                           Text(
                             emp.name,
                             style: const TextStyle(
-                              fontWeight: FontWeight.w800,
+                              fontWeight: FontWeight.w900,
                               fontSize: 16,
+                              color: Colors.black, 
                             ),
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
@@ -198,10 +189,10 @@ class _AttendanceDetailsPageState extends State<AttendanceDetailsPage> {
                           const SizedBox(height: 4),
                           Text(
                             emp.userId,
-                            style: TextStyle(
-                              fontWeight: FontWeight.w600,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w700,
                               fontSize: 13,
-                              color: Colors.black.withOpacity(0.5),
+                              color: Colors.black54,
                             ),
                           ),
                           const SizedBox(height: 8),
@@ -209,10 +200,10 @@ class _AttendanceDetailsPageState extends State<AttendanceDetailsPage> {
                             children: [
                               Text(
                                 'Check-in: ${emp.checkIn}',
-                                style: TextStyle(
+                                style: const TextStyle(
                                   fontSize: 13,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.black.withOpacity(0.72),
+                                  fontWeight: FontWeight.w800,
+                                  color: Colors.black87,
                                 ),
                               ),
                               if (_isLatePage && emp.isLate) ...[
@@ -226,10 +217,10 @@ class _AttendanceDetailsPageState extends State<AttendanceDetailsPage> {
                             'Check-out: ${emp.checkOut}',
                             style: TextStyle(
                               fontSize: 13,
-                              fontWeight: FontWeight.w600,
+                              fontWeight: FontWeight.w800,
                               color: widget.type == 'missing_time_out' 
-                                      ? Colors.red 
-                                      : Colors.black.withOpacity(0.72),
+                                      ? const Color(0xFFE74C3C) 
+                                      : Colors.black87,
                             ),
                           ),
                         ],
@@ -256,13 +247,12 @@ class _LateBadge extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFFE74C3C),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: const Color(0xFFCF3F31)),
       ),
       child: const Text(
         'LATE',
         style: TextStyle(
           fontSize: 10,
-          fontWeight: FontWeight.w800,
+          fontWeight: FontWeight.w900,
           color: Colors.white,
           letterSpacing: 0.3,
         ),
@@ -280,7 +270,7 @@ class _EmployeeAvatar extends StatelessWidget {
   Widget build(BuildContext context) {
     return ClipRRect(
       borderRadius: BorderRadius.circular(12),
-      child: imageUrl.startsWith('http')
+      child: imageUrl.isNotEmpty && imageUrl.startsWith('http')
           ? Image.network(
               imageUrl,
               width: 56,
@@ -298,6 +288,14 @@ class _EmployeeAvatar extends StatelessWidget {
       width: 56,
       height: 56,
       fit: BoxFit.cover,
+      errorBuilder: (context, error, stackTrace) {
+        return Container(
+          width: 56,
+          height: 56,
+          color: Colors.grey[300],
+          child: const Icon(Icons.person, color: Colors.black54),
+        );
+      },
     );
   }
 }
