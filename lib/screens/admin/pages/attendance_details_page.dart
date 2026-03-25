@@ -17,6 +17,9 @@ class _AttendanceDetailsPageState extends State<AttendanceDetailsPage> {
   String? _error;
   List<AttendanceEmployee> _employees = [];
 
+  // Your specific green color: 255 10 139 144
+  final Color _nutechGreen = const Color.fromARGB(255, 10, 139, 144);
+
   bool get _isLatePage => widget.type == 'late';
 
   String get _title {
@@ -86,8 +89,7 @@ class _AttendanceDetailsPageState extends State<AttendanceDetailsPage> {
                     children: [
                       IconButton(
                         icon: const Icon(Icons.arrow_back_rounded),
-                        // Changed to Black for better visibility
-                        color: Colors.black, 
+                        color: _nutechGreen, // Back button is now Green
                         onPressed: () => Navigator.of(context).pop(),
                       ),
                       Expanded(
@@ -96,7 +98,7 @@ class _AttendanceDetailsPageState extends State<AttendanceDetailsPage> {
                           style: const TextStyle(
                             fontSize: 22,
                             fontWeight: FontWeight.w900,
-                            color: Colors.black, // Forced to Black
+                            color: Colors.black, // Title text is now Black
                           ),
                         ),
                       ),
@@ -116,8 +118,7 @@ class _AttendanceDetailsPageState extends State<AttendanceDetailsPage> {
 
   Widget _buildBodyContent() {
     if (_isLoading) {
-      // Changed to Black to match your request
-      return const Center(child: CircularProgressIndicator(color: Colors.black));
+      return Center(child: CircularProgressIndicator(color: _nutechGreen));
     }
 
     if (_error != null) {
@@ -128,7 +129,10 @@ class _AttendanceDetailsPageState extends State<AttendanceDetailsPage> {
             const Icon(Icons.error_outline, color: Colors.red, size: 48),
             const SizedBox(height: 16),
             Text(_error!, style: const TextStyle(color: Colors.red)),
-            TextButton(onPressed: _fetchData, child: const Text('Retry', style: TextStyle(color: Colors.black)))
+            TextButton(
+              onPressed: _fetchData, 
+              child: Text('Retry', style: TextStyle(color: _nutechGreen))
+            )
           ],
         ),
       );
@@ -139,7 +143,7 @@ class _AttendanceDetailsPageState extends State<AttendanceDetailsPage> {
         child: Text(
           'No attendance records available.',
           style: TextStyle(
-            color: Colors.black, // Forced to solid Black
+            color: Colors.black, // Empty state text is now Black
             fontWeight: FontWeight.w700,
           ),
         ),
@@ -148,7 +152,7 @@ class _AttendanceDetailsPageState extends State<AttendanceDetailsPage> {
 
     return RefreshIndicator(
       onRefresh: _fetchData,
-      color: Colors.black, // Refresh icon to Black
+      color: _nutechGreen,
       child: ListView.builder(
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(0, 4, 0, 24),
@@ -158,7 +162,7 @@ class _AttendanceDetailsPageState extends State<AttendanceDetailsPage> {
           return Padding(
             padding: const EdgeInsets.only(bottom: 10),
             child: Material(
-              color: Colors.white, // Solid white for better text contrast
+              color: Colors.white,
               elevation: 2,
               shadowColor: Colors.black45,
               borderRadius: BorderRadius.circular(14),
@@ -181,7 +185,7 @@ class _AttendanceDetailsPageState extends State<AttendanceDetailsPage> {
                             style: const TextStyle(
                               fontWeight: FontWeight.w900,
                               fontSize: 16,
-                              color: Colors.black, 
+                              color: Colors.black, // Name text is Black
                             ),
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
@@ -192,7 +196,7 @@ class _AttendanceDetailsPageState extends State<AttendanceDetailsPage> {
                             style: const TextStyle(
                               fontWeight: FontWeight.w700,
                               fontSize: 13,
-                              color: Colors.black54,
+                              color: Colors.black54, // Secondary text remains subtle
                             ),
                           ),
                           const SizedBox(height: 8),
