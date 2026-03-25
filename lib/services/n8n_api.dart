@@ -4,7 +4,7 @@ import 'package:http/http.dart' as http;
 
 /// Base URL of your n8n instance.
 const String kN8nBaseUrl = String.fromEnvironment(
-  'N8N_BASE_URL',  defaultValue: 'https://topotypical-rhomboidally-shawana.ngrok-free.dev',
+  'N8N_BASE_URL',  defaultValue: 'https://miggyn8n.app.n8n.cloud',
 );
 
 bool get isN8nConfigured {
@@ -20,6 +20,7 @@ class N8nWebhooks {
   static const String userLogin = '/webhook/login/user';
   static const String resendOtp = '/webhook/resend/otp';
 
+  static const String attendanceDetails = '/webhook/admin/attendance/details';
   static const String forgotRequest = '/webhook/forgot-password/request';
   static const String forgotResend = '/webhook/forgot-password/resend';
   static const String forgotVerify = '/webhook/forgot-password/verify';
@@ -35,6 +36,18 @@ class N8nWebhooks {
 
 class N8nApi {
   const N8nApi._();
+
+  static Future<Map<String, dynamic>> postAttendanceDetails({
+    required String type, // Will be either 'onTime' or 'late'
+  }) {
+    return _postJson(
+      N8nWebhooks.attendanceDetails,
+      {
+        'type': type,
+      },
+      throwOnNon2xx: false,
+    );
+  }
 
   static Uri _buildUri(
     String path, {
