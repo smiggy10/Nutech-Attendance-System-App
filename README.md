@@ -46,8 +46,3 @@ An integrated mobile application designed for seamless attendance tracking and a
 /n8n-integration-files - Workflows and configurations for backend automation.
 
 /android, /ios, /linux, /macos, /windows - Platform-specific deployment files.
-
-
-### Next Steps for the Repository
-* **Add Screenshots:** Once the UI/UX is finalized, add a `Screenshots` section right below the features to visually demonstrate the app's interface. 
-* **Document the n8n logic:** Since the repository contains a specific `n8n-integration-files` folder,
