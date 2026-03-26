@@ -50,8 +50,8 @@ class LogsSpecificPage extends StatelessWidget {
     bool isToday = DateUtils.isSameDay(lastEntry.date, now);
 
     // Absent: Red
-    if (lastEntry.status.toLowerCase().contains('absent') || 
-       (isToday && isPast5PM && lastEntry.clockIn.isEmpty)) {
+    if (lastEntry.status.toLowerCase().contains('absent') ||
+        (isToday && isPast5PM && lastEntry.clockIn.isEmpty)) {
       return Colors.red;
     }
 
@@ -62,7 +62,9 @@ class LogsSpecificPage extends StatelessWidget {
 
     // Complete: Green
     double hours = _calculateHours(lastEntry);
-    if (lastEntry.clockIn.isNotEmpty && lastEntry.clockOut.isNotEmpty && hours >= 8) {
+    if (lastEntry.clockIn.isNotEmpty &&
+        lastEntry.clockOut.isNotEmpty &&
+        hours >= 8) {
       return Colors.green;
     }
 
@@ -75,8 +77,8 @@ class LogsSpecificPage extends StatelessWidget {
     bool isPast5PM = now.hour >= 17;
     bool isToday = DateUtils.isSameDay(entry.date, now);
 
-    if (entry.status.toLowerCase().contains('absent') || 
-       (isToday && isPast5PM && entry.clockIn.isEmpty)) {
+    if (entry.status.toLowerCase().contains('absent') ||
+        (isToday && isPast5PM && entry.clockIn.isEmpty)) {
       return 'Absent';
     }
 
@@ -98,16 +100,18 @@ class LogsSpecificPage extends StatelessWidget {
     final String dayNumber = DateFormat('dd').format(date);
     final String fullMonthYear = DateFormat('MMMM yyyy').format(date);
 
+    // Calculate total hours worked for this specific date
     final totalMinutes = entries.fold<int>(0, (sum, e) => sum + e.totalMinutes);
-    final overtimeMinutes =
-        entries.fold<int>(0, (sum, e) => sum + e.overtimeMinutes);
 
-    final topColor =
-        entries.isEmpty ? AppTheme.muted : _statusColorFromEntries(entries);
-    final topTitle =
-        entries.isEmpty ? 'No Log Found' : _prettyStatus(entries.last);
-    final topSubtitle =
-        entries.isEmpty ? 'No shift record' : '${entries.length} shift entr${entries.length == 1 ? 'y' : 'ies'}';
+    final topColor = entries.isEmpty
+        ? AppTheme.muted
+        : _statusColorFromEntries(entries);
+    final topTitle = entries.isEmpty
+        ? 'No Log Found'
+        : _prettyStatus(entries.last);
+    final topSubtitle = entries.isEmpty
+        ? 'No shift record'
+        : '${entries.length} shift entr${entries.length == 1 ? 'y' : 'ies'}';
 
     return Scaffold(
       body: NutechBackground(
@@ -178,7 +182,9 @@ class LogsSpecificPage extends StatelessWidget {
                                     ),
                                     if (i != entries.length - 1)
                                       const Padding(
-                                        padding: EdgeInsets.symmetric(vertical: 18),
+                                        padding: EdgeInsets.symmetric(
+                                          vertical: 18,
+                                        ),
                                         child: Divider(),
                                       ),
                                   ],
@@ -192,12 +198,9 @@ class LogsSpecificPage extends StatelessWidget {
                           children: [
                             _SummaryRow(
                               left: 'Total Hours Worked:',
-                              right: AttendanceLogEntry.formatMinutes(totalMinutes),
-                            ),
-                            const Divider(height: 24),
-                            _SummaryRow(
-                              left: 'Over time:',
-                              right: AttendanceLogEntry.formatMinutes(overtimeMinutes),
+                              right: AttendanceLogEntry.formatMinutes(
+                                totalMinutes,
+                              ),
                             ),
                           ],
                         ),
@@ -215,10 +218,7 @@ class LogsSpecificPage extends StatelessWidget {
 }
 
 class _ShiftBlock extends StatelessWidget {
-  const _ShiftBlock({
-    required this.entry,
-    required this.prettyStatus,
-  });
+  const _ShiftBlock({required this.entry, required this.prettyStatus});
 
   final AttendanceLogEntry entry;
   final String prettyStatus;
@@ -228,7 +228,9 @@ class _ShiftBlock extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (entry.site.isNotEmpty || entry.remarks.isNotEmpty || entry.status.isNotEmpty)
+        if (entry.site.isNotEmpty ||
+            entry.remarks.isNotEmpty ||
+            entry.status.isNotEmpty)
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -309,10 +311,7 @@ class _TopRow extends StatelessWidget {
             child: Text(
               dayLabel,
               textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontWeight: FontWeight.w800,
-                fontSize: 12,
-              ),
+              style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 12),
             ),
           ),
           const SizedBox(width: 14),
@@ -327,20 +326,14 @@ class _TopRow extends StatelessWidget {
                     fontSize: 16,
                   ),
                 ),
-                Text(
-                  time,
-                  style: const TextStyle(color: AppTheme.muted),
-                ),
+                Text(time, style: const TextStyle(color: AppTheme.muted)),
               ],
             ),
           ),
           Container(
             width: 12,
             height: 12,
-            decoration: BoxDecoration(
-              color: dotColor,
-              shape: BoxShape.circle,
-            ),
+            decoration: BoxDecoration(color: dotColor, shape: BoxShape.circle),
           ),
         ],
       ),
@@ -349,10 +342,7 @@ class _TopRow extends StatelessWidget {
 }
 
 class _Section extends StatelessWidget {
-  const _Section({
-    required this.title,
-    required this.child,
-  });
+  const _Section({required this.title, required this.child});
 
   final String title;
   final Widget child;
@@ -414,10 +404,7 @@ class _TimeCard extends StatelessWidget {
               color: AppTheme.teal.withOpacity(0.08),
               borderRadius: BorderRadius.circular(10),
             ),
-            child: const Icon(
-              Icons.access_time_rounded,
-              color: AppTheme.teal,
-            ),
+            child: const Icon(Icons.access_time_rounded, color: AppTheme.teal),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -432,20 +419,14 @@ class _TimeCard extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 2),
-                Text(
-                  device,
-                  style: const TextStyle(color: AppTheme.muted),
-                ),
+                Text(device, style: const TextStyle(color: AppTheme.muted)),
               ],
             ),
           ),
           const SizedBox(width: 12),
           Text(
             time,
-            style: const TextStyle(
-              fontWeight: FontWeight.w900,
-              fontSize: 16,
-            ),
+            style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16),
           ),
         ],
       ),
@@ -454,10 +435,7 @@ class _TimeCard extends StatelessWidget {
 }
 
 class _SummaryRow extends StatelessWidget {
-  const _SummaryRow({
-    required this.left,
-    required this.right,
-  });
+  const _SummaryRow({required this.left, required this.right});
 
   final String left;
   final String right;
@@ -477,10 +455,7 @@ class _SummaryRow extends StatelessWidget {
         ),
         Text(
           right,
-          style: const TextStyle(
-            fontWeight: FontWeight.w900,
-            fontSize: 15,
-          ),
+          style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15),
         ),
       ],
     );
