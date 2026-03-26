@@ -27,3 +27,30 @@ An integrated mobile application designed for seamless attendance tracking and a
 1. Clone the repository:
    ```bash
    git clone [https://github.com/smiggy10/Nutech-Attendance-System-App.git](https://github.com/smiggy10/Nutech-Attendance-System-App.git)
+
+2. Navigate to the project directory:
+ ````bash
+   cd Nutech-Attendance-System-App
+   ````
+
+3. Install dependencies:
+ ````bash
+flutter pub get
+ ````
+
+4. Run the application:
+ ````bash
+flutter run
+ ````
+
+📁 Repository Structure
+/lib - Contains the core Dart code, UI/UX components, and state management.
+
+/n8n-integration-files - Workflows and configurations for backend automation.
+
+/android, /ios, /linux, /macos, /windows - Platform-specific deployment files.
+
+
+### Next Steps for the Repository
+* **Add Screenshots:** Once the UI/UX is finalized, add a `Screenshots` section right below the features to visually demonstrate the app's interface. 
+* **Document the n8n logic:** Since the repository contains a specific `n8n-integration-files` folder,
