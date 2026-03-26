@@ -19,7 +19,7 @@ class _AdminOverviewPageState extends State<AdminOverviewPage> {
   int _lateToday = 0;
   int _totalEmployees = 0;
   int _absencesThisWeek = 0;
-  double _overtimeHours = 0;
+  // double _overtimeHours = 0; // Backend variable kept for API compatibility
   bool _isLoadingOverview = false;
 
   // Pending approvals variables
@@ -49,7 +49,7 @@ class _AdminOverviewPageState extends State<AdminOverviewPage> {
         _lateToday = stats.lateToday;
         _totalEmployees = stats.totalEmployees;
         _absencesThisWeek = stats.absencesThisWeek;
-        _overtimeHours = stats.overtimeHours;
+        // _overtimeHours = stats.overtimeHours; // Backend data kept for API compatibility
         _isLoadingOverview = false;
       });
     } catch (e) {
@@ -60,7 +60,7 @@ class _AdminOverviewPageState extends State<AdminOverviewPage> {
         _lateToday = 0;
         _totalEmployees = 0;
         _absencesThisWeek = 0;
-        _overtimeHours = 0;
+        // _overtimeHours = 0; // Backend data kept for API compatibility
         _isLoadingOverview = false;
       });
     }
@@ -194,8 +194,9 @@ class _AdminOverviewPageState extends State<AdminOverviewPage> {
                             : () {
                                 Navigator.of(context).push(
                                   MaterialPageRoute<void>(
-                                    builder: (_) =>
-                                        const AttendanceDetailsPage(type: 'late'),
+                                    builder: (_) => const AttendanceDetailsPage(
+                                      type: 'late',
+                                    ),
                                   ),
                                 );
                               },
@@ -264,15 +265,6 @@ class _AdminOverviewPageState extends State<AdminOverviewPage> {
                             ? '...'
                             : _absencesThisWeek.toString(),
                         valueColor: Colors.red,
-                      ),
-                      const _DividerLine(),
-                      _DataStatusRow(
-                        iconAsset: 'assets/admin/Overtime.png',
-                        label: 'Overtime Hours',
-                        value: _isLoadingOverview
-                            ? '...'
-                            : _overtimeHours.toStringAsFixed(2),
-                        valueColor: AppTheme.ink,
                       ),
                     ],
                   ),

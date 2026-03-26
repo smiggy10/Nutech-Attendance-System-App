@@ -145,7 +145,7 @@ class _AdminDailyAttendanceScreenState
         ['Present', report.present],
         ['Late', report.late],
         ['Absent', report.absent],
-        ['Overtime', report.overtime],
+        // ['Overtime', report.overtime], // Backend data kept for API compatibility
         [],
         ['Employee', 'User ID', 'Time In', 'Time Out', 'Hours', 'Status'],
         ...report.rows.map(
@@ -282,7 +282,7 @@ class _AdminDailyAttendanceScreenState
                                         '0',
                                         '0',
                                         '0',
-                                        '0',
+                                        // '0', // Backend data kept for API compatibility
                                       ),
                                       const SizedBox(height: 14),
                                       _buildSectionDivider(),
@@ -318,7 +318,7 @@ class _AdminDailyAttendanceScreenState
                                         '0',
                                         '0',
                                         '0',
-                                        '0',
+                                        // '0', // Backend data kept for API compatibility
                                       ),
                                       const SizedBox(height: 14),
                                       _buildSectionDivider(),
@@ -353,7 +353,7 @@ class _AdminDailyAttendanceScreenState
                                         report.present.toString(),
                                         report.late.toString(),
                                         report.absent.toString(),
-                                        report.overtime.toString(),
+                                        // report.overtime.toString(), // Backend data kept for API compatibility
                                       ),
                                       const SizedBox(height: 14),
                                       _buildSectionDivider(),
@@ -387,7 +387,6 @@ class _AdminDailyAttendanceScreenState
                                       report.present.toString(),
                                       report.late.toString(),
                                       report.absent.toString(),
-                                      report.overtime.toString(),
                                     ),
                                     const SizedBox(height: 14),
                                     _buildSectionDivider(),
@@ -459,7 +458,7 @@ class _AdminDailyAttendanceScreenState
     String p,
     String l,
     String a,
-    String o,
+    // String o, // Backend data kept for API compatibility
   ) {
     void open(DailyAttendanceDetailKind kind) {
       final r = report;
@@ -499,17 +498,6 @@ class _AdminDailyAttendanceScreenState
             onTap: report == null
                 ? null
                 : () => open(DailyAttendanceDetailKind.absent),
-          ),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: _MiniStatCard(
-            label: 'Overtime',
-            value: o,
-            color: const Color(0xFF5DADE2),
-            onTap: report == null
-                ? null
-                : () => open(DailyAttendanceDetailKind.overtime),
           ),
         ),
       ],
