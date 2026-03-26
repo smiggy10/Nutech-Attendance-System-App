@@ -1,17 +1,29 @@
-# nutech_app
+# Nutech Attendance System 📱
 
-A new Flutter project.
+An integrated mobile application designed for seamless attendance tracking and access control. By bridging hardware terminals with a mobile software interface, this system provides a streamlined user experience alongside robust backend logic to manage real-time event logging.
 
-## Getting Started
+## ✨ Key Features
 
-This project is a starting point for a Flutter application.
+* **Seamless Check-ins:** Fast, reliable attendance logging for daily operations.
+* **Access Control & Terminal Integration:** Communicates directly with hardware terminals for synchronized access control and data retrieval.
+* **Real-time Event Logging:** Instant synchronization of attendance data across the system.
+* **Intuitive UI/UX:** A clean, user-friendly mobile interface designed for accessibility, smooth navigation, and clear data presentation.
+* **Automated Workflows:** Utilizes customized n8n integration files to handle automated data routing and backend processes.
 
-A few resources to get you started if this is your first Flutter project:
+## 🛠️ Tech Stack
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+* **Frontend:** Flutter, Dart
+* **Backend Logic & Automation:** n8n, REST APIs 
+* **Core/Native:** C++, CMake (for specific terminal/hardware communication)
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## 🚀 Getting Started
+
+### Prerequisites
+* [Flutter SDK](https://docs.flutter.dev/get-started/install) (Latest stable version)
+* Appropriate IDE (Android Studio, VS Code, etc.)
+* n8n instance (for workflow integrations)
+
+### Installation
+1. Clone the repository:
+   ```bash
+   git clone [https://github.com/smiggy10/Nutech-Attendance-System-App.git](https://github.com/smiggy10/Nutech-Attendance-System-App.git)
