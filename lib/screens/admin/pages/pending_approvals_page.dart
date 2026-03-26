@@ -407,7 +407,6 @@ class _PendingApprovalsPageState extends State<PendingApprovalsPage> {
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
                     Expanded(
-                      flex: 2,
                       child: SizedBox(
                         height: 42,
                         child: ElevatedButton(
@@ -419,7 +418,12 @@ class _PendingApprovalsPageState extends State<PendingApprovalsPage> {
                               : () => _runBulkAction('Accept'),
                           child: const Text(
                             'Accept All',
-                            style: TextStyle(fontWeight: FontWeight.w700),
+                            style: TextStyle(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 14,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppTheme.teal,
@@ -427,13 +431,13 @@ class _PendingApprovalsPageState extends State<PendingApprovalsPage> {
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(10),
                             ),
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
                           ),
                         ),
                       ),
                     ),
                     const SizedBox(width: 16),
                     Expanded(
-                      flex: 2,
                       child: SizedBox(
                         height: 42,
                         child: ElevatedButton(
@@ -445,7 +449,12 @@ class _PendingApprovalsPageState extends State<PendingApprovalsPage> {
                               : () => _runBulkAction('Reject'),
                           child: const Text(
                             'Reject All',
-                            style: TextStyle(fontWeight: FontWeight.w700),
+                            style: TextStyle(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 14,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFFE24B33),
@@ -453,6 +462,7 @@ class _PendingApprovalsPageState extends State<PendingApprovalsPage> {
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(10),
                             ),
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
                           ),
                         ),
                       ),
