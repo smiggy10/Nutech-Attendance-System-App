@@ -136,13 +136,12 @@ class _PendingApprovalsPageState extends State<PendingApprovalsPage> {
               message.isNotEmpty
                   ? message
                   : (action == 'Accept'
-                      ? 'Employee accepted successfully.'
-                      : 'Registration rejected successfully.'),
+                        ? 'Employee accepted successfully.'
+                        : 'Registration rejected successfully.'),
             ),
-            backgroundColor:
-                success
-                    ? (action == 'Accept' ? Colors.green : Colors.red)
-                    : Colors.orange,
+            backgroundColor: success
+                ? (action == 'Accept' ? Colors.green : Colors.red)
+                : Colors.orange,
             duration: const Duration(seconds: 2),
           ),
         );
@@ -188,27 +187,25 @@ class _PendingApprovalsPageState extends State<PendingApprovalsPage> {
     final verb = action == 'Accept' ? 'accept' : 'reject';
     final result = await showDialog<bool>(
       context: context,
-      builder:
-          (context) => AlertDialog(
-            title: Text('${action} All Employees'),
-            content: Text(
-              'Are you sure you want to $verb all pending employees?',
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(false),
-                child: const Text('Cancel'),
-              ),
-              FilledButton(
-                onPressed: () => Navigator.of(context).pop(true),
-                style: FilledButton.styleFrom(
-                  backgroundColor:
-                      action == 'Accept' ? AppTheme.teal : const Color(0xFFE24B33),
-                ),
-                child: Text('$action All'),
-              ),
-            ],
+      builder: (context) => AlertDialog(
+        title: Text('${action} All Employees'),
+        content: Text('Are you sure you want to $verb all pending employees?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
           ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: FilledButton.styleFrom(
+              backgroundColor: action == 'Accept'
+                  ? AppTheme.teal
+                  : const Color(0xFFE24B33),
+            ),
+            child: Text('$action All'),
+          ),
+        ],
+      ),
     );
     return result == true;
   }
@@ -267,201 +264,247 @@ class _PendingApprovalsPageState extends State<PendingApprovalsPage> {
     return SafeArea(
       child: Column(
         children: [
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(vertical: 0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                      // Branding Header - Logo now acts as the refresh trigger
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-                        child: GestureDetector(
-                          onTap: (_loading || _actionInProgress.isNotEmpty) ? null : _loadPending,
-                          child: Container(
-                            alignment: Alignment.center,
-                            child: ConstrainedBox(
-                              constraints: const BoxConstraints(maxHeight: 100),
-                              child: Image.asset(
-                                'assets/images/branding/nutechlogo1.png',
-                                fit: BoxFit.contain,
+          // Top header with back button
+          Padding(
+            padding: const EdgeInsets.fromLTRB(8, 4, 16, 8),
+            child: Row(
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.arrow_back_rounded),
+                  color: AppTheme.teal,
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
+                const Expanded(
+                  child: Text(
+                    'Pending Approvals',
+                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(vertical: 0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // Branding Header - Logo now acts as the refresh trigger
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 20,
+                    ),
+                    child: GestureDetector(
+                      onTap: (_loading || _actionInProgress.isNotEmpty)
+                          ? null
+                          : _loadPending,
+                      child: Container(
+                        alignment: Alignment.center,
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxHeight: 100),
+                          child: Image.asset(
+                            'assets/images/branding/nutechlogo1.png',
+                            fit: BoxFit.contain,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  // Removed the "Pending Approvals" Text and Dividers section here
+                  const SizedBox(height: 10),
+                  if (_loading)
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 40),
+                      child: Center(child: CircularProgressIndicator()),
+                    )
+                  else if (_errorText != null && _pending.isEmpty)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            _errorText!,
+                            style: const TextStyle(
+                              color: Colors.redAccent,
+                              fontSize: 14,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 16),
+                          OutlinedButton.icon(
+                            onPressed: _loadPending,
+                            icon: const Icon(Icons.refresh, size: 20),
+                            label: const Text('Retry'),
+                          ),
+                        ],
+                      ),
+                    )
+                  else if (_pending.isEmpty && _errorText == null)
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 40),
+                      child: Center(
+                        child: Text(
+                          'No pending registrations',
+                          style: TextStyle(fontSize: 16, color: AppTheme.muted),
+                        ),
+                      ),
+                    )
+                  else
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      child: _TableCard(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            if (_errorText != null) ...[
+                              Text(
+                                _errorText!,
+                                style: const TextStyle(
+                                  color: Colors.redAccent,
+                                  fontSize: 12,
+                                ),
                               ),
+                              const SizedBox(height: 10),
+                            ],
+                            const Padding(
+                              padding: EdgeInsets.only(left: 4, bottom: 10),
+                              child: Text(
+                                'Employees',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 16,
+                                ),
+                              ),
+                            ),
+                            ListView.separated(
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              itemCount: _pending.length,
+                              separatorBuilder: (_, __) =>
+                                  const SizedBox(height: 8),
+                              itemBuilder: (context, index) {
+                                final item = _pending[index];
+                                return _buildEmployeeRow(item);
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+          // Accept All and Reject All buttons at bottom
+          if (_pending.isNotEmpty && !_isBulkProcessing) ...[
+            SafeArea(
+              child: Container(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    Expanded(
+                      flex: 2,
+                      child: SizedBox(
+                        height: 42,
+                        child: ElevatedButton(
+                          onPressed:
+                              (_isBulkProcessing ||
+                                  _actionInProgress.isNotEmpty ||
+                                  _pending.isEmpty)
+                              ? null
+                              : () => _runBulkAction('Accept'),
+                          child: const Text(
+                            'Accept All',
+                            style: TextStyle(fontWeight: FontWeight.w700),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppTheme.teal,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
                             ),
                           ),
                         ),
                       ),
-                      
-                      // Removed the "Pending Approvals" Text and Dividers section here
-                      
-                      const SizedBox(height: 10),
-                      if (_loading)
-                        const Padding(
-                          padding: EdgeInsets.symmetric(vertical: 40),
-                          child: Center(child: CircularProgressIndicator()),
-                        )
-                      else if (_errorText != null && _pending.isEmpty)
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 20),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(_errorText!,
-                                  style: const TextStyle(color: Colors.redAccent, fontSize: 14),
-                                  textAlign: TextAlign.center),
-                              const SizedBox(height: 16),
-                              OutlinedButton.icon(
-                                onPressed: _loadPending,
-                                icon: const Icon(Icons.refresh, size: 20),
-                                label: const Text('Retry'),
-                              ),
-                            ],
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      flex: 2,
+                      child: SizedBox(
+                        height: 42,
+                        child: ElevatedButton(
+                          onPressed:
+                              (_isBulkProcessing ||
+                                  _actionInProgress.isNotEmpty ||
+                                  _pending.isEmpty)
+                              ? null
+                              : () => _runBulkAction('Reject'),
+                          child: const Text(
+                            'Reject All',
+                            style: TextStyle(fontWeight: FontWeight.w700),
                           ),
-                        )
-                      else if (_pending.isEmpty && _errorText == null)
-                        const Padding(
-                          padding: EdgeInsets.symmetric(vertical: 40),
-                          child: Center(
-                            child: Text(
-                              'No pending registrations',
-                              style: TextStyle(fontSize: 16, color: AppTheme.muted),
-                            ),
-                          ),
-                        )
-                      else
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 20),
-                          child: _TableCard(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                if (_errorText != null) ...[
-                                  Text(_errorText!,
-                                      style: const TextStyle(color: Colors.redAccent, fontSize: 12)),
-                                  const SizedBox(height: 10),
-                                ],
-                                const Padding(
-                                  padding: EdgeInsets.only(left: 4, bottom: 10),
-                                  child: Text('Employees',
-                                      style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
-                                ),
-                                Row(
-                                  children: [
-                                    Expanded(
-                                      child: SizedBox(
-                                        height: 42,
-                                        child: ElevatedButton.icon(
-                                          onPressed: (_isBulkProcessing ||
-                                                  _actionInProgress.isNotEmpty ||
-                                                  _pending.isEmpty)
-                                              ? null
-                                              : () => _runBulkAction('Accept'),
-                                          icon: const Icon(Icons.done_all, size: 18),
-                                          label: const Text(
-                                            'Accept All',
-                                            style: TextStyle(fontWeight: FontWeight.w700),
-                                          ),
-                                          style: ElevatedButton.styleFrom(
-                                            backgroundColor: AppTheme.teal,
-                                            foregroundColor: Colors.white,
-                                            shape: RoundedRectangleBorder(
-                                              borderRadius: BorderRadius.circular(10),
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 10),
-                                    Expanded(
-                                      child: SizedBox(
-                                        height: 42,
-                                        child: ElevatedButton.icon(
-                                          onPressed: (_isBulkProcessing ||
-                                                  _actionInProgress.isNotEmpty ||
-                                                  _pending.isEmpty)
-                                              ? null
-                                              : () => _runBulkAction('Reject'),
-                                          icon: const Icon(Icons.clear_all, size: 18),
-                                          label: const Text(
-                                            'Reject All',
-                                            style: TextStyle(fontWeight: FontWeight.w700),
-                                          ),
-                                          style: ElevatedButton.styleFrom(
-                                            backgroundColor: const Color(0xFFE24B33),
-                                            foregroundColor: Colors.white,
-                                            shape: RoundedRectangleBorder(
-                                              borderRadius: BorderRadius.circular(10),
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                if (_isBulkProcessing) ...[
-                                  const SizedBox(height: 10),
-                                  LinearProgressIndicator(
-                                    value: _bulkTotal == 0
-                                        ? null
-                                        : _bulkProcessed / _bulkTotal,
-                                    color: _bulkAction == 'Accept'
-                                        ? AppTheme.teal
-                                        : const Color(0xFFE24B33),
-                                    backgroundColor: Colors.black.withOpacity(0.08),
-                                  ),
-                                  const SizedBox(height: 6),
-                                  Text(
-                                    '${_bulkAction ?? 'Processing'} ${_bulkProcessed.toString()}/${_bulkTotal.toString()}',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: Colors.black.withOpacity(0.6),
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ],
-                                const SizedBox(height: 10),
-                                ListView.separated(
-                                  shrinkWrap: true,
-                                  physics: const NeverScrollableScrollPhysics(),
-                                  itemCount: _pending.length,
-                                  separatorBuilder: (_, __) => const SizedBox(height: 8),
-                                  itemBuilder: (context, index) {
-                                    final item = _pending[index];
-                                    return _buildEmployeeRow(item);
-                                  },
-                                ),
-                              ],
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFE24B33),
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
                             ),
                           ),
                         ),
+                      ),
+                    ),
                   ],
                 ),
               ),
             ),
-
-            // Bottom Action Button (Back)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 10, 20, 18),
-              child: SizedBox(
-                height: 52,
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed:
-                      _actionInProgress.isNotEmpty ? null : () => Navigator.pop(context),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFE6E7EA),
-                    foregroundColor: const Color(0xFF5B5F66),
-                    elevation: 4,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
+          ],
+          // Bulk processing overlay
+          if (_isBulkProcessing) ...[
+            Container(
+              color: Colors.black.withOpacity(0.3),
+              child: Center(
+                child: Card(
+                  margin: const EdgeInsets.all(20),
+                  child: Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          '$_bulkAction All...',
+                          style: TextStyle(
+                            color: _bulkAction == 'Accept'
+                                ? AppTheme.teal
+                                : const Color(0xFFE24B33),
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        LinearProgressIndicator(
+                          value: _bulkTotal > 0
+                              ? _bulkProcessed / _bulkTotal
+                              : 0,
+                          backgroundColor: Colors.black.withOpacity(0.08),
+                          color: _bulkAction == 'Accept'
+                              ? AppTheme.teal
+                              : const Color(0xFFE24B33),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          '$_bulkProcessed of $_bulkTotal employees',
+                          style: const TextStyle(fontSize: 12),
+                        ),
+                      ],
                     ),
-                  ),
-                  child: const Text(
-                    'Back',
-                    style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
                   ),
                 ),
               ),
             ),
+          ],
         ],
       ),
     );
@@ -474,7 +517,8 @@ class _PendingApprovalsPageState extends State<PendingApprovalsPage> {
     final contactNumber = (item['contactNumber'] ?? '').toString();
 
     final isProcessingThisRow = _actionInProgress.contains(airtableId);
-    final isAnyActionInProgress = _actionInProgress.isNotEmpty || _isBulkProcessing;
+    final isAnyActionInProgress =
+        _actionInProgress.isNotEmpty || _isBulkProcessing;
 
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
@@ -507,26 +551,39 @@ class _PendingApprovalsPageState extends State<PendingApprovalsPage> {
                   children: [
                     Text(
                       fullName.isNotEmpty ? fullName : '—',
-                      style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800),
+                      style: const TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w800,
+                      ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 3),
                     Text(
                       email.isNotEmpty ? email : '—',
-                      style: const TextStyle(fontSize: 13, color: AppTheme.muted),
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: AppTheme.muted,
+                      ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 5),
                     Row(
                       children: [
-                        const Icon(Icons.phone_outlined, size: 14, color: AppTheme.muted),
+                        const Icon(
+                          Icons.phone_outlined,
+                          size: 14,
+                          color: AppTheme.muted,
+                        ),
                         const SizedBox(width: 6),
                         Expanded(
                           child: Text(
                             contactNumber.isNotEmpty ? contactNumber : '—',
-                            style: const TextStyle(fontSize: 12, color: AppTheme.muted),
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: AppTheme.muted,
+                            ),
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
@@ -549,23 +606,34 @@ class _PendingApprovalsPageState extends State<PendingApprovalsPage> {
                       foregroundColor: Colors.white,
                       disabledBackgroundColor: AppTheme.muted.withOpacity(0.5),
                       padding: const EdgeInsets.symmetric(vertical: 8),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
                     ),
-                    onPressed: isAnyActionInProgress ? null : () => _handleAction(item, 'Accept'),
+                    onPressed: isAnyActionInProgress
+                        ? null
+                        : () => _handleAction(item, 'Accept'),
                     child: isProcessingThisRow
                         ? const SizedBox(
                             width: 20,
                             height: 20,
                             child: CircularProgressIndicator(
-                                strokeWidth: 2, color: Colors.white),
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
                           )
                         : const Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Icon(Icons.check, size: 20, color: Colors.white),
                               SizedBox(width: 6),
-                              Text('Accept',
-                                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700)),
+                              Text(
+                                'Accept',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
                             ],
                           ),
                   ),
@@ -581,23 +649,34 @@ class _PendingApprovalsPageState extends State<PendingApprovalsPage> {
                       foregroundColor: Colors.white,
                       disabledBackgroundColor: AppTheme.muted.withOpacity(0.5),
                       padding: const EdgeInsets.symmetric(vertical: 8),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
                     ),
-                    onPressed: isAnyActionInProgress ? null : () => _handleAction(item, 'Reject'),
+                    onPressed: isAnyActionInProgress
+                        ? null
+                        : () => _handleAction(item, 'Reject'),
                     child: isProcessingThisRow
                         ? const SizedBox(
                             width: 20,
                             height: 20,
                             child: CircularProgressIndicator(
-                                strokeWidth: 2, color: Colors.white),
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
                           )
                         : const Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Icon(Icons.close, size: 20, color: Colors.white),
                               SizedBox(width: 6),
-                              Text('Reject',
-                                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700)),
+                              Text(
+                                'Reject',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
                             ],
                           ),
                   ),
