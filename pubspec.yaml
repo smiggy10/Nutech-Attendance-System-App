@@ -28,6 +28,16 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
+  # Added for app icon generation
+  flutter_launcher_icons: ^0.13.1
+
+# App Icon Configuration
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/images/branding/app_icon.png"
+  adaptive_icon_background: "#FFFFFF"
+  adaptive_icon_foreground: "assets/images/branding/app_icon.png"
 
 flutter:
   uses-material-design: true
@@ -38,6 +48,7 @@ flutter:
     - assets/images/ui/bottombackground2.png
     - assets/images/branding/nutechlogo1.png
     - assets/images/branding/nutechlogo2.png
+    - assets/images/branding/app_icon.png # Added the new icon path
     - assets/images/avatar.png
     - assets/images/addimage.png
     - assets/images/offices/office1.jpg
