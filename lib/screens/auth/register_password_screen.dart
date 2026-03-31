@@ -1,5 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:http/http.dart' as http;
 
 import 'package:flutter/material.dart';
 
@@ -86,9 +88,28 @@ class _RegisterPasswordScreenState extends State<RegisterPasswordScreen> {
     // Prepare base64-encoded profile image for n8n (if available).
     String profileImageBase64 = '';
     final dynamic image = fullRegistrationData['profile_image'];
-    if (image is File) {
-      final bytes = await image.readAsBytes();
-      profileImageBase64 = base64Encode(bytes);
+    if (image != null) {
+      try {
+        // Handle web image URLs
+        if (kIsWeb && image is String) {
+          // For web, download the image from URL and convert to base64
+          final response = await http.get(Uri.parse(image));
+          if (response.statusCode == 200) {
+            profileImageBase64 = base64Encode(response.bodyBytes);
+          }
+        } else if (image is File) {
+          // For mobile, read file directly
+          final bytes = await image.readAsBytes();
+          profileImageBase64 = base64Encode(bytes);
+        } else {
+          // Try to read bytes directly for other cases
+          final bytes = await image.readAsBytes();
+          profileImageBase64 = base64Encode(bytes);
+        }
+      } catch (e) {
+        // If image reading fails, continue without image
+        print('Warning: Could not read profile image: $e');
+      }
     }
 
     setState(() {
