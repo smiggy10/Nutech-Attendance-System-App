@@ -4,7 +4,7 @@ import 'package:http/http.dart' as http;
 
 /// Base URL of your n8n instance.
 const String kN8nBaseUrl = String.fromEnvironment(
-  'N8N_BASE_URL',  defaultValue: 'https://glossier-robeless-ramon.ngrok-free.dev/',
+  'N8N_BASE_URL',  defaultValue: 'https://glossier-robeless-ramon.ngrok-free.dev',
 );
 
 bool get isN8nConfigured {
