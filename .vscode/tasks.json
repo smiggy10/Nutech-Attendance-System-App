@@ -1,0 +1,19 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "android: Open in Android Studio",
+      "type": "shell",
+      "command": "start \"\" \"${env:ProgramFiles}\\Android\\Android Studio\\bin\\studio64.exe\" \"${workspaceFolder}\\android\"",
+      "windows": {
+        "options": {
+          "shell": {
+            "executable": "cmd.exe",
+            "args": ["/c"]
+          }
+        }
+      },
+      "problemMatcher": []
+    }
+  ]
+}

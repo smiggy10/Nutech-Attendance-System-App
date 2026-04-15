@@ -42,7 +42,7 @@ class _LoginScreenState extends State<LoginScreen> {
     if (userId.isEmpty || password.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Please enter both User ID and password'),
+          content: Text('Please enter both Employee ID and password'),
           backgroundColor: Colors.redAccent,
         ),
       );
@@ -54,7 +54,7 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     try {
-      if (userId.toLowerCase() == '1' && password == '1') {
+      if (userId.toLowerCase() == 'admin' && password == 'nutech@0210') {
         UserSession.clear();
 
         if (!mounted) return;
@@ -133,13 +133,13 @@ class _LoginScreenState extends State<LoginScreen> {
                 Align(
                   alignment: Alignment.centerLeft,
                   child: Text(
-                    'User ID or Email',
+                    'Employee ID',
                     style: Theme.of(context).textTheme.titleMedium,
                   ),
                 ),
                 const SizedBox(height: 10),
                 NutechTextField(
-                  hint: 'Enter user id or email',
+                  hint: 'Enter Employee ID',
                   controller: _userIdController,
                 ),
                 const SizedBox(height: 18),

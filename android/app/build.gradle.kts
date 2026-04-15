@@ -50,3 +50,25 @@ android {
 flutter {
     source = "../.."
 }
+
+// After Flutter copies the APK to outputs/flutter-apk, rename to a stable filename.
+val renameReleaseApkToNutech by tasks.registering {
+    group = "build"
+    description = "Copy app-release.apk to nutech-app.apk (Flutter still requires app-release.apk)"
+    doLast {
+        val dir = layout.buildDirectory.get().asFile.resolve("outputs/flutter-apk")
+        val from = dir.resolve("app-release.apk")
+        val to = dir.resolve("nutech-app.apk")
+        if (from.exists()) {
+            // Keep app-release.apk — Flutter tooling expects it after the build.
+            from.copyTo(to, overwrite = true)
+        }
+    }
+}
+
+// assembleRelease is created after the Android plugin configures variants.
+afterEvaluate {
+    tasks.named("assembleRelease").configure {
+        finalizedBy(renameReleaseApkToNutech)
+    }
+}

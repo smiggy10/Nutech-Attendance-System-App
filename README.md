@@ -40,9 +40,26 @@ An integrated mobile application designed for seamless attendance tracking and a
     ```bash
    flutter run
 
+## Office PC automated setup (required files)
+
+The office PC that runs **n8n**, **ngrok**, and receives **Dahua** terminal webhooks must include these two files as part of the automated stack. **Source in this repo:**
+
+| File | Location |
+|------|----------|
+| **`dahua-proxy.js`** | [`n8n-integration-files/office-pc/dahua-proxy.js`](n8n-integration-files/office-pc/dahua-proxy.js) |
+| **`start-n8n-ngrok.vbs`** | [`n8n-integration-files/office-pc/start-n8n-ngrok.vbs`](n8n-integration-files/office-pc/start-n8n-ngrok.vbs) |
+
+Copy **both** into the same folder on the office machine (for example `C:\NutechOffice\`). The VBS script runs `dahua-proxy.js` from **that same directory** so you do not need a hard-coded `C:\dahua-proxy.js` path. **Node.js** must be installed and `n8n` / **ngrok** available as in the script.
+
+**`dahua-proxy.js`** — Node.js HTTP proxy (default port **5679**). Reads Dahua’s compressed webhook body (raw deflate and related encodings), decompresses with Node’s `zlib`, and forwards **plain text** to n8n on **5678**, avoiding incorrect deflate headers and similar issues in n8n.
+
+**`start-n8n-ngrok.vbs`** — Run at **logon** via Task Scheduler. Waits for the network (e.g. ZeroTier), stops stray `node.exe` processes, starts **n8n** (with `WEBHOOK_URL` pointing at the proxy), starts **ngrok** from your config, starts the proxy with `node`, then opens the n8n workflow in Chrome. **Edit the VBS** for your site: `WEBHOOK_URL`, ZeroTier/host IP (`192.168.192.197`), **ngrok** exe and `ngrok.yml` paths, **Chrome** path, and the **workflow** URL.
+
+Without both files, the automated office setup (Dahua → proxy → n8n, ngrok, scheduled startup) is incomplete.
+
 📁 Repository Structure
 /lib - Contains the core Dart code, UI/UX components, and state management.
 
-/n8n-integration-files - Workflows and configurations for backend automation.
+/n8n-integration-files - Workflows and configurations for backend automation (includes `office-pc/` for Dahua proxy + Windows startup script).
 
 /android, /ios, /linux, /macos, /windows - Platform-specific deployment files.
